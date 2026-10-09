@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>云朵小镇·推推奇遇 — 交互稿 v1.0</title>
+<style>
+  :root{
+    /* 治愈系配色规范（对应产品文档 4.1） */
+    --cream:#FFF9F0;
+    --cream-deep:#FFF3E2;
+    --pink:#FFD9DF;
+    --pink-deep:#FFB3C1;
+    --mint:#C8EFDD;
+    --mint-deep:#8FD9BC;
+    --yolk:#FFE9A8;
+    --yolk-deep:#FFD666;
+    --sky:#CDE8FF;
+    --sky-deep:#8FC7F0;
+    --coral:#FFB59E;
+    --brown:#7A5C4A;
+    --brown-light:#A88A76;
+    --ink:#5C4A3F;
+    --ink-soft:#8B7768;
+    --shadow:0 4px 14px rgba(122,92,74,.13);
+    --shadow-lg:0 10px 30px rgba(122,92,74,.18);
+    --radius:18px;
+    --radius-sm:12px;
+  }
+
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+
+  html,body{
+    margin:0;padding:0;
+    font-family:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",-apple-system,sans-serif;
+    background:linear-gradient(160deg,#F4F1FF 0%,#E8F4FF 40%,#FFF4E8 100%);
+    color:var(--ink);
+    min-height:100vh;
+  }
+
+  /* ---------- 页面外壳 ---------- */
+  .page{max-width:1280px;margin:0 auto;padding:28px 20px 80px}
+
+  .page-head{text-align:center;margin-bottom:26px}
+  .page-head h1{
+    margin:0 0 8px;font-size:27px;font-weight:800;letter-spacing:.5px;
+    background:linear-gradient(90deg,#FF9EB5,#8FD9BC,#8FC7F0);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .page-head p{margin:0;color:var(--ink-soft);font-size:13.5px}
+
+  /* ---------- 分区导航 ---------- */
+  .nav{
+    display:flex;flex-wrap:wrap;gap:8px;justify-content:center;
+    margin-bottom:26px;position:sticky;top:10px;z-index:60;
+    background:rgba(255,255,255,.72);backdrop-filter:blur(14px);
+    padding:10px;border-radius:16px;box-shadow:var(--shadow);
+    border:1px solid rgba(255,255,255,.9);
+  }
+  .nav button{
+    border:none;cursor:pointer;font:inherit;font-size:12.5px;font-weight:600;
+    padding:8px 15px;border-radius:11px;background:transparent;color:var(--ink-soft);
+    transition:all .18s ease;
+  }
+  .nav button:hover{background:var(--cream-deep);color:var(--ink)}
+  .nav button.on{
+    background:linear-gradient(135deg,#FFB3C1,#FFD9DF);
+    color:#7A4250;box-shadow:0 3px 10px rgba(255,179,193,.45);
+  }
+
+  /* ---------- 通用卡片 ---------- */
+  .grid{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+  .grid-2{display:grid;gap:24px;grid-template-columns:repeat(auto-fit,minmax(400px,1fr))}
+
+  .sec-title{
+    display:flex;align-items:center;gap:9px;
+    font-size:16px;font-weight:800;margin:0 0 4px;
+  }
+  .sec-title .dot{
+    width:9px;height:9px;border-radius:50%;
+    background:linear-gradient(135deg,#FFB3C1,#8FD9BC);
+    box-shadow:0 0 0 4px rgba(255,179,193,.22);
+  }
+  .sec-sub{font-size:12px;color:var(--ink-soft);margin:0 0 14px 18px;line-height:1.6}
+
+  .block{
+    background:#fff;border-radius:var(--radius);padding:20px;
+    box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.95);
+    margin-bottom:24px;
+  }
+
+  /* ---------- 手机外壳 ---------- */
+  .phone{
+    width:100%;max-width:330px;margin:0 auto;
+    background:var(--cream);
+    border-radius:30px;padding:10px;
+    box-shadow:var(--shadow-lg),0 0 0 1px rgba(122,92,74,.07);
+  }
+  .screen{
+    position:relative;background:linear-gradient(180deg,#EAF6FF 0%,#FFF6EA 55%,#FFEFF3 100%);
+    border-radius:23px;overflow:hidden;
+    height:600px;display:flex;flex-direction:column;
+  }
+  /* 微信小游戏右上角胶囊按钮 */
+  .capsule{
+    position:absolute;top:9px;right:10px;z-index:40;
+    display:flex;align-items:center;gap:2px;
+    background:rgba(255,255,255,.62);backdrop-filter:blur(8px);
+    border-radius:20px;padding:5px 9px;
+    font-size:10px;color:var(--ink-soft);pointer-events:none;
+  }
+  .capsule span{font-size:11px;letter-spacing:2px;opacity:.75}
+
+  .label{
+    text-align:center;font-size:11.5px;font-weight:700;color:var(--ink-soft);
+    margin:12px 0 0;letter-spacing:.3px;
+  }
+  .label b{color:#D97A96}
+
+  /* ---------- 云朵装饰 ---------- */
+  .cloud{
+    position:absolute;border-radius:50%;background:rgba(255,255,255,.86);
+    filter:blur(.3px);pointer-events:none;
+  }
+  .cloud::before,.cloud::after{content:"";position:absolute;border-radius:50%;background:inherit}
+  .c1{width:52px;height:22px;top:34px;left:-14px;animation:drift 26s linear infinite}
+  .c1::before{width:26px;height:26px;top:-12px;left:12px}
+  .c1::after{width:18px;height:18px;top:-7px;left:30px}
+  .c2{width:70px;height:26px;top:82px;right:-24px;animation:drift 34s linear infinite reverse}
+  .c2::before{width:32px;height:32px;top:-15px;left:16px}
+  .c2::after{width:22px;height:22px;top:-9px;left:42px}
+  .c3{width:44px;height:18px;top:150px;left:-20px;animation:drift 30s linear infinite}
+  .c3::before{width:22px;height:22px;top:-10px;left:10px}
+
+  @keyframes drift{
+    0%{transform:translateX(0)}
+    50%{transform:translateX(38px)}
+    100%{transform:translateX(0)}
+  }
+
+  /* ---------- 主菜单 ---------- */
+  .menu-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0 22px;position:relative;z-index:5}
+
+  .game-logo{
+    font-size:29px;font-weight:900;letter-spacing:2px;line-height:1.28;
+    text-align:center;margin:0 0 6px;
+    background:linear-gradient(135deg,#FF9EB5 0%,#FFC46B 50%,#8FD9BC 100%);
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    text-shadow:0 2px 0 rgba(255,255,255,.7);
+  }
+  .game-sub{
+    font-size:11px;color:var(--brown-light);letter-spacing:3.5px;
+    margin:0 0 24px;font-weight:600;
+  }
+
+  /* 狐狸吉祥物 */
+  .mascot{
+    width:104px;height:104px;position:relative;margin-bottom:26px;
+    animation:bob 2.4s ease-in-out infinite;
+  }
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+  .mascot .ear{
+    position:absolute;width:32px;height:36px;background:#FFA96B;
+    border-radius:50% 50% 42% 42%;top:0;
+  }
+  .mascot .ear.l{left:6px;transform:rotate(-16deg)}
+  .mascot .ear.r{right:6px;transform:rotate(16deg)}
+  .mascot .ear::after{
+    content:"";position:absolute;width:16px;height:18px;background:#FFD4AE;
+    border-radius:50%;top:9px;left:8px;
+  }
+  .mascot .face{
+    position:absolute;width:88px;height:78px;background:#FFB77E;
+    border-radius:50% 50% 46% 46%;top:14px;left:8px;
+    box-shadow:inset 0 -6px 12px rgba(214,140,80,.22);
+  }
+  .mascot .face::before{
+    content:"";position:absolute;width:40px;height:28px;background:#FFF5E8;
+    border-radius:50%;bottom:6px;left:24px;
+  }
+  .mascot .eye{
+    position:absolute;width:9px;height:10px;background:#5C4A3F;border-radius:50%;
+    top:30px;z-index:3;
+  }
+  .mascot .eye.l{left:30px}
+  .mascot .eye.r{right:30px}
+  .mascot .nose{
+    position:absolute;width:11px;height:8px;background:#7A5C4A;border-radius:50% 50% 50% 50%;
+    top:44px;left:50%;transform:translateX(-50%);z-index:3;
+  }
+  .mascot .cheek{
+    position:absolute;width:13px;height:8px;background:rgba(255,150,160,.55);
+    border-radius:50%;top:44px;z-index:3;
+  }
+  .mascot .cheek.l{left:16px}
+  .mascot .cheek.r{right:16px}
+
+  /* ---------- 按钮 ---------- */
+  .btn{
+    border:none;font:inherit;font-weight:800;cursor:pointer;
+    border-radius:14px;padding:13px 22px;width:100%;
+    font-size:14.5px;letter-spacing:.6px;
+    transition:transform .12s ease,box-shadow .18s ease;
+    display:flex;align-items:center;justify-content:center;gap:7px;
+  }
+  .btn:active{transform:scale(.975)}
+  .btn-primary{
+    background:linear-gradient(135deg,#FFC46B,#FFA96B);
+    color:#7A4520;box-shadow:0 5px 0 #E8944A,0 9px 18px rgba(232,148,74,.32);
+  }
+  .btn-primary:active{box-shadow:0 2px 0 #E8944A,0 4px 10px rgba(232,148,74,.3)}
+  .btn-mint{
+    background:linear-gradient(135deg,#A8E6C9,#7ED9B4);
+    color:#2D6E55;box-shadow:0 5px 0 #63C29B,0 9px 18px rgba(99,194,155,.3);
+  }
+  .btn-mint:active{box-shadow:0 2px 0 #63C29B,0 4px 10px rgba(99,194,155,.3)}
+  .btn-pink{
+    background:linear-gradient(135deg,#FFD0DA,#FFB3C1);
+    color:#8A4A58;box-shadow:0 5px 0 #E8909F,0 9px 18px rgba(232,144,159,.3);
+  }
+  .btn-pink:active{box-shadow:0 2px 0 #E8909F,0 4px 10px rgba(232,144,159,.3)}
+  .btn-ghost{
+    background:rgba(255,255,255,.9);color:var(--ink-soft);
+    box-shadow:0 3px 0 rgba(180,160,150,.25),0 6px 14px rgba(122,92,74,.1);
+    font-size:13px;padding:11px 18px;
+  }
+  .btn-ghost:active{box-shadow:0 1px 0 rgba(180,160,150,.25)}
+  .btn-sm{padding:9px 14px;font-size:12.5px;border-radius:11px;width:auto}
+  .btn-icon{font-size:15px}
+
+  .btn-row{display:flex;gap:10px;width:100%}
+  .btn-row .btn{width:auto;flex:1}
+
+  /* ---------- 顶栏 ---------- */
+  .topbar{
+    display:flex;align-items:center;gap:9px;padding:16px 15px 10px;
+    position:relative;z-index:20;flex-shrink:0;
+  }
+  .topbar .back{
+    width:32px;height:32px;border-radius:11px;border:none;cursor:pointer;
+    background:rgba(255,255,255,.85);color:var(--ink-soft);font-size:15px;
+    display:flex;align-items:center;justify-content:center;
+    box-shadow:0 2px 7px rgba(122,92,74,.12);
+  }
+  .topbar .t-title{font-size:14.5px;font-weight:800;flex:1}
+  .topbar .t-chip{
+    background:rgba(255,255,255,.85);border-radius:11px;padding:5px 11px;
+    font-size:11.5px;font-weight:700;color:var(--ink-soft);
+    box-shadow:0 2px 7px rgba(122,92,74,.1);
+  }
+
+  /* ---------- 选关地图 ---------- */
+  .map-wrap{flex:1;overflow-y:auto;padding:4px 16px 18px;position:relative;z-index:5}
+  .map-wrap::-webkit-scrollbar{width:0}
+  .chapter-tag{
+    display:inline-flex;align-items:center;gap:6px;
+    background:linear-gradient(135deg,#FFE9A8,#FFD666);
+    color:#8A6A1F;font-size:11px;font-weight:800;
+    padding:5px 13px;border-radius:20px;margin:12px 0 12px;
+    box-shadow:0 3px 9px rgba(255,214,102,.4);
+  }
+  .lv-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:9px}
+  .lv{
+    aspect-ratio:1;border-radius:14px;border:none;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+    font-weight:800;font-size:15px;position:relative;
+    transition:transform .14s ease;
+  }
+  .lv:active{transform:scale(.93)}
+  .lv.done{
+    background:linear-gradient(135deg,#A8E6C9,#7ED9B4);color:#2D6E55;
+    box-shadow:0 4px 0 #63C29B,0 7px 14px rgba(99,194,155,.3);
+  }
+  .lv.cur{
+    background:linear-gradient(135deg,#FFC46B,#FFA96B);color:#7A4520;
+    box-shadow:0 4px 0 #E8944A,0 7px 16px rgba(232,148,74,.4);
+    animation:pulse 1.9s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.055)}}
+  .lv.lock{background:rgba(255,255,255,.62);color:#C4B5AC;box-shadow:0 3px 0 rgba(196,181,172,.3)}
+  .lv.devil{
+    background:linear-gradient(135deg,#FFB3C1,#FF8FA8);color:#fff;
+    box-shadow:0 4px 0 #E8909F,0 7px 16px rgba(232,144,159,.42);
+  }
+  .lv .star{font-size:8px;letter-spacing:.5px;opacity:.95}
+  .lv .badge{
+    position:absolute;top:-5px;right:-5px;font-size:8.5px;
+    background:#FF6B8A;color:#fff;border-radius:8px;padding:1px 5px;
+    font-weight:800;box-shadow:0 2px 5px rgba(255,107,138,.5);
+  }
+
+  /* ---------- 游戏棋盘 ---------- */
+  .game-area{flex:1;display:flex;flex-direction:column;position:relative;z-index:5;padding:4px 16px 0}
+  .hud{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:9px 13px;background:rgba(255,255,255,.82);border-radius:15px;
+    box-shadow:var(--shadow);margin-bottom:11px;
+  }
+  .hud .h-item{text-align:center;flex:1}
+  .hud .h-val{font-size:16px;font-weight:900;color:var(--ink);line-height:1}
+  .hud .h-key{font-size:9.5px;color:var(--ink-soft);margin-top:3px;font-weight:600}
+  .hud .h-div{width:1px;height:26px;background:rgba(122,92,74,.14)}
+  .hud .best{color:#D97A96}
+
+  .board{
+    background:linear-gradient(160deg,#FFFDF8,#FFF4E8);
+    border-radius:19px;padding:11px;
+    box-shadow:inset 0 2px 8px rgba(122,92,74,.09),0 5px 18px rgba(122,92,74,.13);
+    display:grid;gap:3px;margin:0 auto;width:100%;
+    max-width:266px;
+  }
+  .tile{
+    aspect-ratio:1;border-radius:8px;position:relative;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(255,255,255,.62);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.9);
+    font-size:17px;
+  }
+  .tile.wall{
+    background:linear-gradient(135deg,#D9C4AE,#C4A88D);
+    box-shadow:inset 0 -2px 0 rgba(140,110,85,.32),inset 0 2px 0 rgba(255,255,255,.3);
+  }
+  .tile.wall::after{
+    content:"";position:absolute;inset:3px;border-radius:5px;
+    background:linear-gradient(135deg,rgba(255,255,255,.24),transparent);
+  }
+  .tile.target{
+    background:radial-gradient(circle,rgba(255,233,168,.95),rgba(255,214,102,.5));
+    box-shadow:inset 0 0 0 2px rgba(255,214,102,.8),0 0 10px rgba(255,214,102,.45);
+  }
+  .tile.target::after{
+    content:"✦";position:absolute;color:rgba(255,255,255,.95);font-size:12px;
+    animation:twinkle 1.8s ease-in-out infinite;
+  }
+  @keyframes twinkle{0%,100%{opacity:.5;transform:scale(.9)}50%{opacity:1;transform:scale(1.12)}}
+  .tile.conveyor{
+    background:repeating-linear-gradient(45deg,#FFD9DF 0 6px,#CDE8FF 6px 12px);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.85);
+    background-size:200% 200%;animation:flow 2.6s linear infinite;
+  }
+  @keyframes flow{0%{background-position:0 0}100%{background-position:24px 24px}}
+  .tile.slope{
+    background:linear-gradient(135deg,#E8D5FF,#CDE8FF);
+    box-shadow:inset 0 -3px 0 rgba(160,140,200,.3);
+  }
+  .tile.spring{
+    background:radial-gradient(circle,#C8EFDD,#8FD9BC);
+    box-shadow:inset 0 0 0 2px rgba(143,217,188,.7);
+  }
+  .tile.spring::after{content:"🍄";position:absolute;font-size:13px}
+
+  .box{
+    width:78%;height:78%;border-radius:9px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:14px;position:absolute;z-index:3;
+    transition:transform .17s cubic-bezier(.34,1.4,.64,1);
+  }
+  .box.on-target{
+    box-shadow:0 0 0 2.5px rgba(255,214,102,.95),0 0 14px rgba(255,214,102,.7);
+    animation:glow 1.5s ease-in-out infinite;
+  }
+  @keyframes glow{0%,100%{filter:brightness(1)}50%{filter:brightness(1.22)}}
+
+  .player{
+    position:absolute;z-index:5;width:72%;height:72%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:17px;
+    transition:transform .17s cubic-bezier(.34,1.4,.64,1);
+  }
+  .player.fox::after{
+    content:"";position:absolute;width:9px;height:9px;border-radius:50%;
+    background:rgba(255,214,102,.55);bottom:-3px;left:50%;
+    transform:translateX(-50%);filter:blur(3px);
+  }
+
+  /* 操作区 */
+  .pad-wrap{padding:13px 16px 16px;display:flex;flex-direction:column;gap:9px}
+  .pad-hint{text-align:center;font-size:10.5px;color:var(--brown-light);font-weight:600}
+  .pad{display:grid;grid-template-columns:repeat(3,44px);grid-template-rows:repeat(3,44px);gap:5px;justify-content:center}
+  .pad button{
+    border:none;border-radius:12px;cursor:pointer;font-size:16px;
+    background:rgba(255,255,255,.92);color:var(--brown);
+    box-shadow:0 3px 0 rgba(180,160,150,.3);
+    display:flex;align-items:center;justify-content:center;
+    transition:all .11s ease;
+  }
+  .pad button:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(180,160,150,.3)}
+  .pad .empty{background:transparent;box-shadow:none;pointer-events:none}
+  .pad .center{
+    background:linear-gradient(135deg,#FFE9A8,#FFD666);color:#7A5C20;font-size:14px;
+  }
+  .act-row{display:flex;gap:8px;justify-content:center}
+
+  /* ---------- 弹窗 ---------- */
+  .mask{
+    position:absolute;inset:0;background:rgba(92,74,63,.36);
+    backdrop-filter:blur(3px);z-index:50;
+    display:flex;align-items:center;justify-content:center;padding:22px;
+    animation:fadeIn .22s ease;
+  }
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+  .modal{
+    background:var(--cream);border-radius:22px;padding:22px 19px 19px;
+    width:100%;max-width:266px;text-align:center;
+    box-shadow:0 16px 44px rgba(92,74,63,.3);
+    animation:popIn .3s cubic-bezier(.34,1.5,.64,1);
+    position:relative;
+  }
+  @keyframes popIn{from{transform:scale(.86) translateY(12px);opacity:0}to{transform:scale(1) translateY(0);opacity:1}}
+
+  .modal h3{margin:0 0 9px;font-size:17px;font-weight:900}
+  .modal .m-emoji{font-size:34px;display:block;margin-bottom:7px}
+  .modal p{margin:0 0 15px;font-size:12.5px;color:var(--ink-soft);line-height:1.68}
+  .modal .m-actions{display:flex;flex-direction:column;gap:8px}
+
+  .modal-close{
+    position:absolute;top:11px;right:12px;width:25px;height:25px;
+    border-radius:50%;border:none;cursor:pointer;
+    background:rgba(122,92,74,.09);color:var(--ink-soft);
+    font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;
+  }
+
+  /* 步数对比 */
+  .vs-row{display:flex;align-items:center;justify-content:center;gap:13px;margin:13px 0}
+  .vs-card{
+    flex:1;background:#fff;border-radius:15px;padding:12px 8px;
+    box-shadow:var(--shadow);
+  }
+  .vs-card.me{box-shadow:0 0 0 2px #FFD666,var(--shadow)}
+  .vs-card .vs-name{font-size:10.5px;color:var(--ink-soft);font-weight:700;margin-bottom:5px}
+  .vs-card .vs-num{font-size:23px;font-weight:900;color:var(--ink);line-height:1}
+  .vs-card .vs-unit{font-size:9.5px;color:var(--ink-soft);margin-top:3px}
+  .vs-card.win .vs-num{color:#4CAF7D}
+  .vs-card.lose .vs-num{color:#D97A96}
+  .vs-mid{font-size:15px;font-weight:900;color:var(--ink-soft)}
+
+  /* 进度条 */
+  .pbar{height:7px;background:rgba(122,92,74,.11);border-radius:6px;overflow:hidden;margin:9px 0}
+  .pbar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#FFC46B,#8FD9BC);transition:width .7s ease}
+
+  /* ---------- 排行榜 ---------- */
+  .rank-list{flex:1;overflow-y:auto;padding:0 16px 18px;position:relative;z-index:5}
+  .rank-list::-webkit-scrollbar{width:0}
+  .rank-item{
+    display:flex;align-items:center;gap:11px;
+    background:#fff;border-radius:15px;padding:11px 13px;margin-bottom:9px;
+    box-shadow:var(--shadow);
+  }
+  .rank-item.me{box-shadow:0 0 0 2px #FFD666,var(--shadow);background:#FFFCF2}
+  .rank-no{
+    width:25px;height:25px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11.5px;font-weight:900;color:#fff;
+    background:linear-gradient(135deg,#D9C4AE,#BFA289);
+  }
+  .rank-no.g1{background:linear-gradient(135deg,#FFD666,#FFB347)}
+  .rank-no.g2{background:linear-gradient(135deg,#D7DCE2,#B4BCC7)}
+  .rank-no.g3{background:linear-gradient(135deg,#E8B98D,#D19A6C)}
+  .rank-ava{
+    width:34px;height:34px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;font-size:17px;
+    background:linear-gradient(135deg,#FFE9A8,#FFD9DF);
+  }
+  .rank-info{flex:1;min-width:0}
+  .rank-name{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rank-tag{font-size:9.5px;color:var(--ink-soft);margin-top:2px}
+  .rank-tag.near{color:#E8909F;font-weight:800}
+  .rank-score{font-size:15px;font-weight:900;color:var(--ink);flex-shrink:0}
+  .rank-score small{font-size:9.5px;color:var(--ink-soft);font-weight:600;margin-left:2px}
+
+  /* ---------- 设置 / 通用列表 ---------- */
+  .list{display:flex;flex-direction:column;gap:8px}
+  .list-item{
+    display:flex;align-items:center;gap:11px;
+    background:#fff;border-radius:14px;padding:12px 14px;
+    box-shadow:var(--shadow);font-size:13px;font-weight:600;
+  }
+  .list-item .li-ico{font-size:17px;width:23px;text-align:center}
+  .list-item .li-body{flex:1}
+  .list-item .li-sub{font-size:10.5px;color:var(--ink-soft);font-weight:500;margin-top:2px}
+  .switch{
+    width:39px;height:22px;border-radius:12px;background:#DCD2CB;position:relative;
+    cursor:pointer;transition:background .22s;flex-shrink:0;border:none;
+  }
+  .switch.on{background:linear-gradient(135deg,#A8E6C9,#7ED9B4)}
+  .switch i{
+    position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;
+    top:2.5px;left:3px;transition:left .22s cubic-bezier(.34,1.4,.64,1);
+    box-shadow:0 2px 5px rgba(0,0,0,.16);
+  }
+  .switch.on i{left:19px}
+
+  /* ---------- 说明卡 ---------- */
+  .note{
+    background:linear-gradient(135deg,#FFFBEF,#FFF4E8);
+    border-left:4px solid #FFD666;border-radius:11px;
+    padding:12px 14px;font-size:12px;line-height:1.75;color:var(--ink-soft);
+    margin-top:12px;
+  }
+  .note b{color:#B8860B}
+  .note.warn{background:linear-gradient(135deg,#FFF4F5,#FFECEF);border-left-color:#FFB3C1}
+  .note.warn b{color:#C4506A}
+  .note.mint{background:linear-gradient(135deg,#F2FDF8,#E8F8F1);border-left-color:#8FD9BC}
+  .note.mint b{color:#2D8A66}
+
+  .tag-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .tag{
+    font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:9px;
+    background:rgba(255,214,102,.24);color:#8A6A1F;
+  }
+  .tag.pink{background:rgba(255,179,193,.28);color:#B04A63}
+  .tag.mint{background:rgba(143,217,188,.28);color:#2D7A5E}
+  .tag.sky{background:rgba(143,199,240,.3);color:#2A6A96}
+
+  /* ---------- 分组容器 ---------- */
+  .demo-group{display:none}
+  .demo-group.active{display:block;animation:fadeIn .3s ease}
+
+  .sec-head{margin:0 0 18px}
+  .sec-head h2{
+    margin:0 0 5px;font-size:19px;font-weight:900;letter-spacing:.3px;
+  }
+  .sec-head p{margin:0;font-size:12.5px;color:var(--ink-soft);line-height:1.7}
+
+  hr.sep{border:none;border-top:1px dashed rgba(122,92,74,.18);margin:22px 0}
+
+  /* ---------- 响应式 ---------- */
+  @media(max-width:640px){
+    .page{padding:16px 12px 60px}
+    .page-head h1{font-size:21px}
+    .nav{padding:8px;gap:6px}
+    .nav button{padding:7px 11px;font-size:11.5px}
+    .block{padding:15px}
+    .phone{max-width:100%}
+    .screen{height:560px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-head">
+    <h1>云朵小镇 · 推推奇遇</h1>
+    <p>高保真交互稿 v1.0 &nbsp;|&nbsp; 治愈系萌宠小镇 · 推箱子解谜 · 三层社交结构</p>
+  </div>
+
+  <nav class="nav" id="nav">
+    <button class="on" data-g="g1">主菜单</button>
+    <button data-g="g2">选关地图</button>
+    <button data-g="g3">游戏内</button>
+    <button data-g="g4">魔鬼关卡</button>
+    <button data-g="g5">求助机制</button>
+    <button data-g="g6">异步 PK</button>
+    <button data-g="g7">排行榜</button>
+    <button data-g="g8">变现触发点</button>
+    <button data-g="g9">设计规范</button>
+  </nav>
+
+  <!-- ==================== 1. 主菜单 ==================== -->
+  <div class="demo-group active" id="g1">
+    <div class="sec-head">
+      <h2>① 主菜单</h2>
+      <p>进入即见。治愈系第一印象 + 玩家进度概览。核心出口：开始游戏 / 排行榜 / 设置。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="cloud c1"></div><div class="cloud c2"></div><div class="cloud c3"></div>
+
+            <div class="menu-body">
+              <div class="mascot">
+                <div class="ear l"></div><div class="ear r"></div>
+                <div class="face"></div>
+                <div class="eye l"></div><div class="eye r"></div>
+                <div class="cheek l"></div><div class="cheek r"></div>
+                <div class="nose"></div>
+              </div>
+              <h1 class="game-logo">云朵小镇</h1>
+              <p class="game-sub">推 推 奇 遇</p>
+
+              <!-- 进度概览 -->
+              <div style="width:100%;background:rgba(255,255,255,.78);border-radius:15px;padding:11px 14px;margin-bottom:20px;box-shadow:var(--shadow)">
+                <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:var(--ink-soft)">
+                  <span>小镇进度</span>
+                  <span style="color:#D97A96">12 / 30 关</span>
+                </div>
+                <div class="pbar"><i style="width:40%"></i></div>
+                <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--brown-light)">
+                  <span>⭐ 已得星星 26</span>
+                  <span>🏠 第 2 章</span>
+                </div>
+              </div>
+
+              <div style="width:100%;display:flex;flex-direction:column;gap:10px">
+                <button class="btn btn-primary" onclick="alert('→ 进入第 12 关（当前进度）')">
+                  <span class="btn-icon">🎮</span> 继续游戏
+                </button>
+                <div class="btn-row">
+                  <button class="btn btn-mint btn-sm" onclick="alert('→ 切到「选关地图」标签页')">
+                    <span class="btn-icon">🗺️</span> 选关
+                  </button>
+                  <button class="btn btn-pink btn-sm" onclick="alert('→ 切到「排行榜」标签页')">
+                    <span class="btn-icon">🏆</span> 排行
+                  </button>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('settingsMask').style.display='flex'">
+                    <span class="btn-icon">⚙️</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 设置弹窗 -->
+            <div class="mask" id="settingsMask" style="display:none">
+              <div class="modal" style="max-width:262px">
+                <button class="modal-close" onclick="document.getElementById('settingsMask').style.display='none'">✕</button>
+                <h3>设置</h3>
+                <div class="list" style="text-align:left">
+                  <div class="list-item">
+                    <span class="li-ico">🎵</span>
+                    <span class="li-body">背景音乐</span>
+                    <button class="switch on" onclick="this.classList.toggle('on')"><i></i></button>
+                  </div>
+                  <div class="list-item">
+                    <span class="li-ico">🔊</span>
+                    <span class="li-body">音效</span>
+                    <button class="switch on" onclick="this.classList.toggle('on')"><i></i></button>
+                  </div>
+                  <div class="list-item">
+                    <span class="li-ico">📳</span>
+                    <span class="li-body">震动反馈</span>
+                    <button class="switch" onclick="this.classList.toggle('on')"><i></i></button>
+                  </div>
+                </div>
+                <div class="note" style="text-align:left">
+                  <b>音频无障碍提示</b>：本作<u>不依赖音频</u>传递任何关键信息（音效仅作氛围与反馈增强），静音环境下体验完整。
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="label">主菜单 · 含进度概览</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>设计意图</div>
+          <p class="sec-sub">对应产品文档 1.1 / 3.5</p>
+          <div class="note mint">
+            <b>① 3 秒建立情绪</b><br>
+            进入即见"跳动的狐狸 + 云朵" → 立刻传递"治愈、可爱、轻松"。
+          </div>
+          <div class="note mint">
+            <b>② 主按钮唯一</b><br>
+            "继续游戏"是唯一的大按钮（主操作），其他入口弱化为小按钮，避免选择困难。
+          </div>
+          <div class="note mint">
+            <b>③ 进度可视化</b><br>
+            显示"12/30 关 + 星星数 + 当前章节"，制造"我快打完了"的推进感（对应筛选器 B：技巧天花板）。
+          </div>
+          <div class="note warn">
+            <b>⚠️ 静音无障碍（v3.0 修正项）</b><br>
+            产品文档 3.2 原设计"音乐花丛靠音效判断隐藏目标"已延后——因为静音环境下直接不可玩。本交互稿在设置页明确标注"不依赖音频"。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. 选关地图 ==================== -->
+  <div class="demo-group" id="g2">
+    <div class="sec-head">
+      <h2>② 选关地图</h2>
+      <p>按章节分区。魔鬼关卡用特殊配色 + 角标标识，制造"这关有名"的预期。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">选择关卡</span>
+              <span class="t-chip">⭐ 26</span>
+            </div>
+
+            <div class="map-wrap">
+              <div class="chapter-tag">🌸 第一章 · 搬新家</div>
+              <div class="lv-grid">
+                <button class="lv done">1<span class="star">★★★</span></button>
+                <button class="lv done">2<span class="star">★★★</span></button>
+                <button class="lv done">3<span class="star">★★☆</span></button>
+                <button class="lv done">4<span class="star">★★★</span></button>
+                <button class="lv done">5<span class="star">★★☆</span></button>
+                <button class="lv done">6<span class="star">★★★</span></button>
+                <button class="lv done">7<span class="star">★★☆</span></button>
+                <button class="lv devil done">8<span class="badge">魔鬼</span></button>
+                <button class="lv done">9<span class="star">★★☆</span></button>
+                <button class="lv done">10<span class="star">★★★</span></button>
+              </div>
+
+              <div class="chapter-tag" style="background:linear-gradient(135deg,#C8EFDD,#8FD9BC);color:#2D6E55;box-shadow:0 3px 9px rgba(143,217,188,.45)">🎠 第二章 · 滑梯乐园</div>
+              <div class="lv-grid">
+                <button class="lv done">11<span class="star">★★☆</span></button>
+                <button class="lv cur">12<span class="star">进行中</span></button>
+                <button class="lv lock">13</button>
+                <button class="lv lock">14</button>
+                <button class="lv lock">15</button>
+                <button class="lv lock">16</button>
+                <button class="lv lock">17</button>
+                <button class="lv lock">18<span class="star">🔒</span></button>
+                <button class="lv lock">19</button>
+                <button class="lv lock">20</button>
+              </div>
+
+              <div class="chapter-tag" style="background:linear-gradient(135deg,#CDE8FF,#8FC7F0);color:#2A6A96;box-shadow:0 3px 9px rgba(143,199,240,.45)">🎉 第三章 · 朋友派对</div>
+              <div class="lv-grid">
+                <button class="lv lock">21</button><button class="lv lock">22</button>
+                <button class="lv lock">23</button><button class="lv lock">24</button>
+                <button class="lv lock">25</button><button class="lv lock">26</button>
+                <button class="lv lock">27</button><button class="lv lock">28</button>
+                <button class="lv lock">29</button><button class="lv lock">30</button>
+              </div>
+            </div>
+          </div>
+          <p class="label">选关地图 · 魔鬼关卡带角标</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>设计意图</div>
+          <p class="sec-sub">对应产品文档 3.3 / 6.3</p>
+          <div class="note mint">
+            <b>① 魔鬼关卡"前置造势"</b><br>
+            第 8 关用<b>红色配色 + "魔鬼"角标</b>。玩家还没玩就知道"这关有名"——这是《羊了个羊》式的话题前置。当他自己卡住时，会觉得"不是我菜，是这关本来就难"。
+          </div>
+          <div class="note mint">
+            <b>② 星级 = 步数</b><br>
+            三星 = 达到最优步数；二星 = 超出 1-3 步；一星 = 通关即可。<b>星级是"最少步数"的视觉化</b>，直接支撑社交对比口径。
+          </div>
+          <div class="note mint">
+            <b>③ 章节配色区分</b><br>
+            黄（第一章）→ 绿（第二章）→ 蓝（第三章），随章节推进色彩变凉，视觉上有"走得更远"的仪式感。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 3. 游戏内 ==================== -->
+  <div class="demo-group" id="g3">
+    <div class="sec-head">
+      <h2>③ 游戏内（核心玩法）</h2>
+      <p>棋盘 + HUD + 滑动/方向键操作。下方演示"传送带"机制的交互与事件反馈。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">第 12 关 · 彩虹桥</span>
+              <span class="t-chip">🔄 重置</span>
+            </div>
+
+            <div class="game-area">
+              <!-- HUD -->
+              <div class="hud">
+                <div class="h-item">
+                  <div class="h-val" id="stepVal">0</div>
+                  <div class="h-key">当前步数</div>
+                </div>
+                <div class="h-div"></div>
+                <div class="h-item">
+                  <div class="h-val best">18</div>
+                  <div class="h-key">最少步数</div>
+                </div>
+                <div class="h-div"></div>
+                <div class="h-item">
+                  <div class="h-val" style="color:#8FD9BC">2</div>
+                  <div class="h-key">星光台</div>
+                </div>
+              </div>
+
+              <!-- 棋盘 -->
+              <div class="board" id="board" style="grid-template-columns:repeat(6,1fr)">
+                <!-- 由 JS 渲染 -->
+              </div>
+            </div>
+
+            <!-- 操作区 -->
+            <div class="pad-wrap">
+              <div class="pad-hint">滑动屏幕移动 · 或使用下方方向键</div>
+              <div class="pad">
+                <button class="empty"></button>
+                <button onclick="doMove('up')">↑</button>
+                <button class="empty"></button>
+                <button onclick="undo()">↩</button>
+                <button class="center" onclick="doReset()">重</button>
+                <button onclick="doHint()">💡</button>
+                <button class="empty"></button>
+                <button onclick="doMove('down')">↓</button>
+                <button class="empty"></button>
+                <button class="empty"></button>
+                <button onclick="doMove('left')">←</button>
+                <button onclick="doMove('right')">→</button>
+              </div>
+              <div class="act-row">
+                <span class="tag pink">💡 提示 3 次免费</span>
+                <span class="tag mint">↩ 无限撤销</span>
+              </div>
+            </div>
+          </div>
+          <p class="label">游戏内 · 可交互（点方向键试试）</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>可交互演示说明</div>
+          <p class="sec-sub">点上方方向键或"重"按钮，棋盘会实时响应</p>
+          <div class="note mint">
+            <b>① 棋盘元素</b><br>
+            <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:linear-gradient(135deg,#D9C4AE,#C4A88D);color:#fff;font-size:11px">墙</span>
+            <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:radial-gradient(circle,#FFE9A8,#FFD666);color:#8A6A1F;font-size:11px">✦ 星光台</span>
+            <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:repeating-linear-gradient(45deg,#FFD9DF 0 6px,#CDE8FF 6px 12px);font-size:11px">彩虹传送带</span>
+            <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:linear-gradient(135deg,#E8D5FF,#CDE8FF);font-size:11px">滑梯</span>
+            <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:radial-gradient(circle,#C8EFDD,#8FD9BC);font-size:11px">🍄 弹簧</span>
+          </div>
+          <div class="note mint">
+            <b>② 交互闭环</b><br>
+            滑动 → 角色移动 → 若前方有物件则推动 → 若物件落在传送带上则自动传送 → 到位后星光台亮起 → 全部归位即通关。
+          </div>
+          <div class="note">
+            <b>③ HUD 三项信息</b><br>
+            <b>当前步数</b>（实时）· <b>最少步数 18</b>（社交对比口径，用粉色突出）· <b>星光台进度</b>。<br>
+            最少步数始终可见，让玩家随时知道"我还能不能更好"。
+          </div>
+          <div class="note warn">
+            <b>④ 静音可玩</b><br>
+            本关卡的所有机关均为<b>视觉可见</b>（传送带流动动画、星光台光晕），不依赖音频。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. 魔鬼关卡 ==================== -->
+  <div class="demo-group" id="g4">
+    <div class="sec-head">
+      <h2>④ 魔鬼关卡 · 卡关态（社交情绪地基）</h2>
+      <p>三层社交结构的第一层。核心：<b>看似能过 → 最后卡死 → 不羞辱 → 引出求助</b>。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">第 8 关 · 就差一步</span>
+              <span class="t-chip">🔴 魔鬼关</span>
+            </div>
+
+            <div class="game-area">
+              <div class="hud">
+                <div class="h-item">
+                  <div class="h-val" style="color:#D97A96">17</div>
+                  <div class="h-key">当前步数</div>
+                </div>
+                <div class="h-div"></div>
+                <div class="h-item">
+                  <div class="h-val best">12</div>
+                  <div class="h-key">最少步数</div>
+                </div>
+                <div class="h-div"></div>
+                <div class="h-item">
+                  <div class="h-val" style="color:#E8909F">1/2</div>
+                  <div class="h-key">星光台</div>
+                </div>
+              </div>
+
+              <div class="board" style="grid-template-columns:repeat(6,1fr);max-width:246px">
+                <div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div>
+                <div class="tile wall"></div>
+                <div class="tile"></div><div class="tile"></div><div class="tile target"></div><div class="tile"></div>
+                <div class="tile wall"></div>
+                <div class="tile wall"></div>
+                <div class="tile"><div class="box on-target" style="background:linear-gradient(135deg,#FFE9A8,#FFD666)">🎁</div></div>
+                <div class="tile wall"></div><div class="tile"></div><div class="tile"></div>
+                <div class="tile wall"></div>
+                <div class="tile wall"></div>
+                <div class="tile"></div><div class="tile"></div>
+                <div class="tile"><div class="box" style="background:linear-gradient(135deg,#FFD9DF,#FFB3C1)">🎃</div></div>
+                <div class="tile target"></div>
+                <div class="tile wall"></div>
+                <div class="tile wall"></div>
+                <div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div><div class="tile wall"></div>
+              </div>
+
+              <div style="text-align:center;margin-top:11px">
+                <div style="font-size:11.5px;color:#B04A63;font-weight:800;background:rgba(255,179,193,.22);border-radius:11px;padding:7px 12px;display:inline-block">
+                  🎃 小南瓜卡在角落了… 再想想？
+                </div>
+              </div>
+            </div>
+
+            <div class="pad-wrap">
+              <div class="btn-row">
+                <button class="btn btn-ghost btn-sm" onclick="undo()">↩ 撤销</button>
+                <button class="btn btn-mint btn-sm" onclick="alert('💡 提示：先推动【小南瓜】到滑梯口，再处理礼物盒哦～')">💡 提示 (3)</button>
+                <button class="btn btn-pink btn-sm" onclick="document.getElementById('helpMask').style.display='flex'">
+                  🥺 求救
+                </button>
+              </div>
+              <div class="pbar" style="margin-top:4px"><i style="width:64%"></i></div>
+              <div class="pad-hint">累计尝试 17 步 · 卡关 4 分 12 秒</div>
+            </div>
+
+            <!-- 求助弹窗 -->
+            <div class="mask" id="helpMask" style="display:none">
+              <div class="modal">
+                <button class="modal-close" onclick="document.getElementById('helpMask').style.display='none'">✕</button>
+                <span class="m-emoji">🥺</span>
+                <h3>呼叫小伙伴</h3>
+                <p>我在《就差一步》卡住了<br>小松鼠说它也没办法…</p>
+                <div class="m-actions">
+                  <button class="btn btn-pink" onclick="alert('→ 发送求助卡片给好友\n（今日剩余求助次数：2/3）')">💌 发给好友</button>
+                  <button class="btn btn-primary" onclick="alert('→ 播放激励视频获得 1 次提示\n（每关最多 2 次）')">📺 看视频得提示</button>
+                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('helpMask').style.display='none'">我再想想</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="label">魔鬼关卡卡关态 · 点「求救」看弹窗</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>魔鬼关卡设计解码</div>
+          <p class="sec-sub">对应产品文档 6.3 · 自检流程见流程图第 7 节</p>
+
+          <div class="note warn">
+            <b>✅ 通过自检的 4 个要素</b><br>
+            ① <b>视觉上可解</b>：标准 6×6 棋盘，不吓人<br>
+            ② <b>有接近感</b>：🎁 已归位（1/2），只剩 🎃 —— "就差一点"<br>
+            ③ <b>有微小侥幸</b>：确实有解（12 步最优），但直觉路径必错<br>
+            ④ <b>失败不羞辱</b>：文案是"再想想？"而非"失败"
+          </div>
+
+          <div class="note mint">
+            <b>痛点结构</b><br>
+            90% 的玩家会先推 🎃（因为它看起来更近），推完之后 🎁 就永远推不出来了。<br>
+            <b>但游戏不会说"你错了"</b>——只显示"再想想"，并保留无限撤销。<br>
+            玩家在 3-5 次尝试后才意识到"我一开始的思路就错了"——<b>这个瞬间就是分享欲望最强的时刻</b>。
+          </div>
+
+          <div class="note">
+            <b>情绪 → 行为的转化设计</b><br>
+            <b>"卡关 4 分 12 秒"</b> 这个计时是刻意的：超过 5 分钟就会主动弹"求助好友"提示。<br>
+            弹窗里给了两条路：<b>发好友（社交）</b> 或 <b>看视频（变现）</b>——这就是"一个卡点同时喂两个系统"。
+          </div>
+
+          <div class="note warn">
+            <b>⚠️ 必须有的"防口碑雷"措施</b><br>
+            文档 6.8 明确指出：必须保证<b>关卡有解</b>且<b>解是确定的</b>。本关已存档解路径，若出现"这关是不是无解"的投诉，立即官方公示解法（避免《羊了个羊》式口碑危机）。
+          </div>
+
+          <div class="tag-row">
+            <span class="tag pink">P0 优先级</span>
+            <span class="tag">每章 1 个</span>
+            <span class="tag">关卡名《就差一步》</span>
+            <span class="tag sky">≥3 轮真人测试</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 5. 求助机制 ==================== -->
+  <div class="demo-group" id="g5">
+    <div class="sec-head">
+      <h2>⑤ 求助机制（三层社交 · 第二层）</h2>
+      <p>两种形态：<b>① 加油</b>（好友点一下给提示）· <b>② 传地址</b>（好友挑战同一关）。附防骚扰约束。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">好友求助</span>
+              <span class="t-chip">今日 1/3</span>
+            </div>
+
+            <div style="flex:1;overflow-y:auto;padding:4px 16px 16px">
+              <!-- 收到的求助 -->
+              <div class="block" style="padding:16px;margin-bottom:12px">
+                <div style="display:flex;align-items:center;gap:11px;margin-bottom:12px">
+                  <div class="rank-ava">🐰</div>
+                  <div style="flex:1">
+                    <div style="font-size:13px;font-weight:800">小兔叽</div>
+                    <div style="font-size:10.5px;color:var(--ink-soft);margin-top:2px">3 分钟前 · 第 8 关《就差一步》</div>
+                  </div>
+                </div>
+                <div style="background:rgba(255,179,193,.16);border-radius:12px;padding:11px;font-size:12px;line-height:1.7;color:#A84A62;margin-bottom:12px">
+                  "我在《就差一步》卡住了，小松鼠说它也没办法 🥺"
+                </div>
+                <div class="btn-row">
+                  <button class="btn btn-pink btn-sm" onclick="this.innerHTML='✅ 已加油';this.style.opacity=.6;alert('你帮 TA 加油了！获得 1 颗小星星 ⭐')">✨ 加油</button>
+                  <button class="btn btn-mint btn-sm" onclick="alert('→ 进入第 8 关，独立挑战\n（同关卡同配置，公平比拼）')">🎮 挑战 TA</button>
+                </div>
+              </div>
+
+              <!-- 我发出的求助 -->
+              <div class="block" style="padding:16px;margin-bottom:12px">
+                <div style="font-size:12px;font-weight:800;margin-bottom:11px;color:var(--ink-soft)">我发出的求助</div>
+                <div class="list-item" style="box-shadow:none;background:rgba(255,255,255,.7)">
+                  <span class="li-ico">⏳</span>
+                  <span class="li-body">
+                    第 8 关 · 就差一步
+                    <div class="li-sub">等待好友加油…（2/3 好友已读）</div>
+                  </span>
+                </div>
+              </div>
+
+              <!-- 约束说明 -->
+              <div class="note warn" style="margin:0">
+                <b>今日求助次数：1 / 3</b><br>
+                · 同一好友 24 小时内只能求助 1 次<br>
+                · 好友帮你后，TA 会获得 1 颗小星星
+              </div>
+            </div>
+          </div>
+          <p class="label">求助接收页 · 可点「加油」</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>两种求助形态</div>
+          <p class="sec-sub">对应产品文档 6.4 · 判定流程见流程图第 6 节</p>
+
+          <div class="note mint">
+            <b>形态① 加油（最轻）</b><br>
+            好友点一下"加油" → 玩家获得 <b>1 次免费提示</b>，好友获得 <b>1 颗小星星 ⭐</b>。<br>
+            <b>关键设计</b>：帮助的成本极低（点一下），收益明确（拿到星星），不尴尬。
+          </div>
+
+          <div class="note mint">
+            <b>形态② 传地址（中）</b><br>
+            好友点"挑战 TA" → 进入<b>同一关</b>独立解。<br>
+            <b>⚠️ 不做"帮你玩"</b>：推箱子没法"帮玩"（给好友他也得自己解），所以改成"转成竞技"。
+          </div>
+
+          <div class="note">
+            <b>形态③ 组队解谜（重 · 延后）</b><br>
+            邀请好友从"已走的前 N 步"继续解——需要序列化状态传输，ROI 不高，首发不做。
+          </div>
+
+          <hr class="sep">
+
+          <div class="sec-title"><span class="dot"></span>防骚扰硬约束（必须有）</div>
+          <p class="sec-sub">推箱子求助是"点对点"的，做不好会变成骚扰</p>
+          <div class="list" style="margin-top:10px">
+            <div class="list-item"><span class="li-ico">①</span><span class="li-body">每人每日求助上限 <b>3 次</b><div class="li-sub">对齐微信分享频次隐性限制</div></span></div>
+            <div class="list-item"><span class="li-ico">②</span><span class="li-body">同一好友 <b>24 小时</b>内只能被求助 1 次<div class="li-sub">防止反复骚扰同一个人</div></span></div>
+            <div class="list-item"><span class="li-ico">③</span><span class="li-body">求助必须<b>"给好友东西"</b><div class="li-sub">好友拿到星星才有正收益，不烦</div></span></div>
+            <div class="list-item" style="background:#FFF4F5"><span class="li-ico">✕</span><span class="li-body">不做<b>"分享才能复活"</b><div class="li-sub">微信不鼓励，伤体验</div></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 6. 异步 PK ==================== -->
+  <div class="demo-group" id="g6">
+    <div class="sec-head">
+      <h2>⑥ 异步 PK · 小镇挑战赛（三层社交 · 第三层）</h2>
+      <p><b>⚠️ 废弃"镜像版"设计</b> —— 改为<b>同关卡同配置，比最少步数</b>。公平性才是竞技的生命线。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">小镇挑战赛</span>
+              <span class="t-chip">第 8 关</span>
+            </div>
+
+            <div style="flex:1;overflow-y:auto;padding:4px 16px 16px">
+              <!-- 挑战中（隐藏对方成绩） -->
+              <div class="block" style="padding:16px;margin-bottom:13px">
+                <div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:10px">⏳ 挑战进行中</div>
+                <div style="background:rgba(143,199,240,.18);border-radius:13px;padding:13px;font-size:11.5px;line-height:1.75;color:#2A6A96">
+                  <b>小兔叽</b> 向你发起了挑战！<br>
+                  关卡配置完全一致 —— 比谁的步数更少 🐾<br>
+                  <span style="opacity:.75">（对方成绩暂时保密，通关后揭晓）</span>
+                </div>
+                <button class="btn btn-mint" style="margin-top:12px" onclick="alert('→ 进入第 8 关（同配置复刻）\n不显示对方成绩，避免"反正赢不了"的放弃')">
+                  🎮 接受挑战
+                </button>
+              </div>
+
+              <!-- 我在挑战中（隐藏对方成绩） -->
+              <div class="block" style="padding:16px;margin-bottom:13px">
+                <div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:10px">🎮 我正在挑战</div>
+                <div class="list-item" style="box-shadow:none;background:rgba(255,255,255,.75)">
+                  <span class="li-ico">🐰</span>
+                  <span class="li-body">小兔叽 的挑战
+                    <div class="li-sub">第 8 关 · 已提交 19 步 · 等待对方</div>
+                  </span>
+                  <span class="tag mint">待揭晓</span>
+                </div>
+              </div>
+
+              <!-- 结果揭晓 -->
+              <div class="block" style="padding:16px">
+                <div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:8px">🏁 挑战结果揭晓</div>
+                <div class="vs-row">
+                  <div class="vs-card me win">
+                    <div class="vs-name">我 😺</div>
+                    <div class="vs-num">19</div>
+                    <div class="vs-unit">步</div>
+                  </div>
+                  <div class="vs-mid">VS</div>
+                  <div class="vs-card lose">
+                    <div class="vs-name">小兔叽 🐰</div>
+                    <div class="vs-num">23</div>
+                    <div class="vs-unit">步</div>
+                  </div>
+                </div>
+                <div style="text-align:center;font-size:13.5px;font-weight:900;color:#4CAF7D;margin-bottom:13px">
+                  🏆 你赢了！比 TA 少用 4 步
+                </div>
+                <div class="m-actions" style="display:flex;flex-direction:column;gap:8px">
+                  <button class="btn btn-pink btn-sm" onclick="alert('→ 生成可爱海报分享到朋友圈\n"我比小兔叽少用 4 步 🏆"')">📸 生成炫耀海报</button>
+                  <button class="btn btn-ghost btn-sm" onclick="alert('→ 再接再厉，发起新挑战')">🔄 再挑战一局</button>
+                </div>
+              </div>
+
+              <!-- 就差一点 -->
+              <div class="block" style="padding:16px;margin-top:13px;box-shadow:0 0 0 2px #FFD666,var(--shadow)">
+                <div style="text-align:center">
+                  <div style="font-size:31px;margin-bottom:5px">😤</div>
+                  <div style="font-size:14px;font-weight:900;color:#B8860B;margin-bottom:5px">就差 2 步！</div>
+                  <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:12px">
+                    你 21 步 · 小兔叽 19 步<br>
+                    差距 ≤2 步时高亮，直接触发再挑战
+                  </div>
+                  <button class="btn btn-primary btn-sm" style="width:100%" onclick="alert('→ 发起反向挑战（接龙）\n传播链不中断')">🔄 我要翻盘</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="label">挑战赛 · 三态（进行中/揭晓/就差一点）</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>为什么废弃"镜像版"</div>
+          <p class="sec-sub">⚠️ v3.0 关键修正项（产品文档 6.5）</p>
+          <div class="note warn">
+            <b>❌ v2.0 原设计：</b>"进入同一关卡的镜像版本（布局相同但机关配置随机变化）"<br><br>
+            <b>问题 1 · 不可比：</b>机关配置变了，步数就没有可比性 → PK 失去意义<br>
+            <b>问题 2 · 不公平：</b>随机配置会导致一方明显更难 → 玩家觉得不公平<br><br>
+            <b>✅ v3.0 正确做法：</b>同关卡、同配置、比最少步数 + 用时
+          </div>
+
+          <hr class="sep">
+
+          <div class="sec-title"><span class="dot"></span>4 个关键设计点</div>
+          <div class="list" style="margin-top:10px">
+            <div class="list-item"><span class="li-ico">🔒</span><span class="li-body"><b>隐藏对方成绩</b><div class="li-sub">挑战中不显示，避免"反正赢不了"的放弃</div></span></div>
+            <div class="list-item"><span class="li-ico">💥</span><span class="li-body"><b>"差一点"高亮（差 ≤2 步）</b><div class="li-sub">直接触发再挑战，这是最有效的留存钩子</div></span></div>
+            <div class="list-item"><span class="li-ico">🔄</span><span class="li-body"><b>失败可反向挑战</b><div class="li-sub">输的人有翻盘机会 → 传播链不中断</div></span></div>
+            <div class="list-item"><span class="li-ico">🔗</span><span class="li-body"><b>接龙机制</b><div class="li-sub">一个链接传多手 → 指数级传播</div></span></div>
+          </div>
+
+          <hr class="sep">
+
+          <div class="sec-title"><span class="dot"></span>记分口径（关键细节）</div>
+          <div class="note mint" style="margin-top:10px">
+            <b>只算"历史最少步数"，不算总步数</b><br><br>
+            ❌ 错误：算玩家实际走了多少步 → 谨慎的玩家永远输给莽撞的玩家<br>
+            ✅ 正确：算这一关的历史最少步数（允许反复重试取最优）→ 比的是"能不能找到更优解"，<b>这才有技巧深度</b>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 7. 排行榜 ==================== -->
+  <div class="demo-group" id="g7">
+    <div class="sec-head">
+      <h2>⑦ 好友排行榜</h2>
+      <p>微信开放数据域实现。<b>"差一点"提示</b>是核心留存钩子。不做总榜（对普通玩家无意义）。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">第 8 关 · 最少步数榜</span>
+              <span class="t-chip">👥 好友</span>
+            </div>
+
+            <div style="padding:0 16px 10px">
+              <div style="background:linear-gradient(135deg,#FFF4DC,#FFECEF);border-radius:14px;padding:11px 13px;font-size:11.5px;font-weight:700;color:#B04A63;text-align:center;box-shadow:var(--shadow)">
+                💥 你就差一步！再少 1 步就能超过 <b>豆豆龙</b>
+              </div>
+            </div>
+
+            <div class="rank-list">
+              <div class="rank-item">
+                <div class="rank-no g1">1</div>
+                <div class="rank-ava">🦊</div>
+                <div class="rank-info"><div class="rank-name">小奶狐</div><div class="rank-tag">全三星通关</div></div>
+                <div class="rank-score">12<small>步</small></div>
+              </div>
+              <div class="rank-item">
+                <div class="rank-no g2">2</div>
+                <div class="rank-ava">🐼</div>
+                <div class="rank-info"><div class="rank-name">胖达君</div><div class="rank-tag">隐藏关卡已解锁</div></div>
+                <div class="rank-score">15<small>步</small></div>
+              </div>
+              <div class="rank-item">
+                <div class="rank-no g3">3</div>
+                <div class="rank-ava">🐰</div>
+                <div class="rank-info"><div class="rank-name">小兔叽</div><div class="rank-tag near">💥 只比我多 4 步</div></div>
+                <div class="rank-score">23<small>步</small></div>
+              </div>
+              <div class="rank-item me">
+                <div class="rank-no">4</div>
+                <div class="rank-ava">😺</div>
+                <div class="rank-info"><div class="rank-name">我</div><div class="rank-tag near">就差一步！</div></div>
+                <div class="rank-score">19<small>步</small></div>
+              </div>
+              <div class="rank-item">
+                <div class="rank-no">5</div>
+                <div class="rank-ava">🐸</div>
+                <div class="rank-info"><div class="rank-name">咕咕呱</div><div class="rank-tag near">💥 只比我少 4 步</div></div>
+                <div class="rank-score">23<small>步</small></div>
+              </div>
+              <div class="rank-item">
+                <div class="rank-no">6</div>
+                <div class="rank-ava">🐻</div>
+                <div class="rank-info"><div class="rank-name">熊小北</div><div class="rank-tag">刚通关</div></div>
+                <div class="rank-score">28<small>步</small></div>
+              </div>
+              <div class="rank-item">
+                <div class="rank-no">7</div>
+                <div class="rank-ava">🐧</div>
+                <div class="rank-info"><div class="rank-name">企鹅阿冰</div><div class="rank-tag">努力中…</div></div>
+                <div class="rank-score">34<small>步</small></div>
+              </div>
+              <div class="rank-item">
+                <div class="rank-no">8</div>
+                <div class="rank-ava">🐨</div>
+                <div class="rank-info"><div class="rank-name">考拉睡不醒</div><div class="rank-tag">刚通关</div></div>
+                <div class="rank-score">41<small>步</small></div>
+              </div>
+            </div>
+          </div>
+          <p class="label">好友最少步数榜 · "差一点"高亮</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>设计要点</div>
+          <p class="sec-sub">对应产品文档 6.5 / 6.6</p>
+
+          <div class="note mint">
+            <b>① "差一点"高亮是核心钩子</b><br>
+            只对<b>差距 ≤2 步</b>的好友显示"💥 就差一步！"<br>
+            差太远的（12 步）不显示 —— 避免"反正追不上"的挫败。
+          </div>
+
+          <div class="note mint">
+            <b>② 只做两个榜</b><br>
+            <b>最少步数榜</b>（本页）：刺激"我要比他少 1 步"<br>
+            <b>章节进度榜</b>：制造"他比我快"的焦虑<br>
+            <b>不做总榜</b> —— 对普通玩家无意义，只有头部有意思。
+          </div>
+
+          <div class="note">
+            <b>③ 开放数据域技术要点</b><br>
+            用 <code>wx.setUserCloudStorage</code> 上报，子域独立包渲染。<br>
+            <b>注意</b>：开放数据域是独立运行环境，不能访问主域变量；数据更新有延迟，不要频繁写入。
+          </div>
+
+          <div class="note warn">
+            <b>④ 为什么"步数"比"通关数"更适合做榜</b><br>
+            通关数榜只有"快慢"，步数榜有"优劣"——<b>步数是可以反复挑战改写的</b>，通关数不能。步数榜能持续产生"再来一次"的动机。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 8. 变现触发点 ==================== -->
+  <div class="demo-group" id="g8">
+    <div class="sec-head">
+      <h2>⑧ 变现触发点（纯 IAA）</h2>
+      <p>个人主体<b>不能开内购</b>，只能广告变现。5 个触发点，全部走激励视频。<b>不设 Banner / 插屏</b>。</p>
+    </div>
+
+    <div class="grid-2">
+      <div>
+        <div class="phone">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">结算</span>
+              <span class="t-chip">第 12 关</span>
+            </div>
+
+            <div style="flex:1;overflow-y:auto;padding:4px 16px 16px">
+              <!-- 结算 -->
+              <div class="block" style="padding:20px;text-align:center;margin-bottom:13px">
+                <div style="font-size:39px;margin-bottom:7px">🎉</div>
+                <div style="font-size:17px;font-weight:900;margin-bottom:5px">通关！</div>
+                <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:13px">你用了 <b style="color:#D97A96;font-size:14px">19</b> 步 · 比 92% 的镇民都聪明</div>
+                <div style="display:flex;justify-content:center;gap:5px;font-size:21px;margin-bottom:15px">⭐⭐⭐</div>
+                <div class="btn-row" style="margin-bottom:8px">
+                  <button class="btn btn-pink btn-sm" onclick="alert('→ 生成可爱海报分享到朋友圈\n获得 1 次免费提示')">📸 分享成绩</button>
+                  <button class="btn btn-mint btn-sm" onclick="alert('→ 进入「小镇挑战赛」\n把这一关分享给好友比拼')">🎮 发起挑战</button>
+                </div>
+              </div>
+
+              <!-- 广告触发点 1：翻倍 -->
+              <div class="block" style="padding:15px;margin-bottom:11px;box-shadow:0 0 0 2px #FFD666,var(--shadow)">
+                <div style="display:flex;align-items:center;gap:11px">
+                  <span style="font-size:25px">📺</span>
+                  <div style="flex:1;text-align:left">
+                    <div style="font-size:12.5px;font-weight:800">看视频，星星翻倍</div>
+                    <div style="font-size:10.5px;color:var(--ink-soft);margin-top:2px">⭐ 3 → ⭐ 6 · 今日剩余 3/3</div>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="alert('→ 播放激励视频\n⚠️ onClose 必须检查 isEnded，跳过不发奖励')">看</button>
+                </div>
+              </div>
+
+              <!-- 广告触发点 2：解锁隐藏关 -->
+              <div class="block" style="padding:15px;margin-bottom:11px">
+                <div style="display:flex;align-items:center;gap:11px">
+                  <span style="font-size:25px">🗝️</span>
+                  <div style="flex:1;text-align:left">
+                    <div style="font-size:12.5px;font-weight:800">解锁隐藏关卡</div>
+                    <div style="font-size:10.5px;color:var(--ink-soft);margin-top:2px">每章可解锁 1 次</div>
+                  </div>
+                  <button class="btn btn-mint btn-sm" onclick="alert('→ 播放激励视频解锁隐藏关')">看</button>
+                </div>
+              </div>
+
+              <!-- 广告触发点 3：每日奖励 -->
+              <div class="block" style="padding:15px">
+                <div style="display:flex;align-items:center;gap:11px">
+                  <span style="font-size:25px">🎁</span>
+                  <div style="flex:1;text-align:left">
+                    <div style="font-size:12.5px;font-weight:800">领取每日奖励</div>
+                    <div style="font-size:10.5px;color:var(--ink-soft);margin-top:2px">每日 1 次 · 12 颗小星星</div>
+                  </div>
+                  <button class="btn btn-primary btn-sm" onclick="alert('→ 播放激励视频领每日奖励')">领取</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="label">结算页 · 含 3 个广告触发点</p>
+        </div>
+      </div>
+
+      <div>
+        <div class="block">
+          <div class="sec-title"><span class="dot"></span>5 个触发点</div>
+          <p class="sec-sub">对应产品文档 7.2</p>
+          <div class="list" style="margin-top:10px">
+            <div class="list-item"><span class="li-ico">💀</span><span class="li-body">关卡失败后复活<div class="li-sub">每关最多 1 次</div></span></div>
+            <div class="list-item"><span class="li-ico">💡</span><span class="li-body">获取提示<div class="li-sub">每关最多 2 次（前 3 次免费）</div></span></div>
+            <div class="list-item"><span class="li-ico">🗝️</span><span class="li-body">解锁隐藏关卡<div class="li-sub">每章 1 次</div></span></div>
+            <div class="list-item"><span class="li-ico">🎁</span><span class="li-body">领取每日奖励<div class="li-sub">每日 1 次</div></span></div>
+            <div class="list-item"><span class="li-ico">✨</span><span class="li-body">结算界面"翻倍"<div class="li-sub">每日 3 次</div></span></div>
+          </div>
+
+          <hr class="sep">
+
+          <div class="sec-title"><span class="dot"></span>技术要点（必须）</div>
+          <div class="note warn" style="margin-top:10px">
+            <b>三个事件必须监听</b><br>
+            <b>onLoad</b> → 记录"广告可用"，UI 才显示"看广告"按钮<br>
+            <b>onError</b> → <b>降级为"分享求助"</b>，不能卡死流程<br>
+            <b>onClose</b> → <b>必须检查 <code>isEnded</code></b>，用户跳过广告<b>不发放奖励</b>，否则损失收入
+          </div>
+
+          <hr class="sep">
+
+          <div class="sec-title"><span class="dot"></span>收入预期（修正版）</div>
+          <div class="note" style="margin-top:10px">
+            <b>⚠️ 按保守口径重算</b><br>
+            eCPM = <b>25 元</b>（官方 >50 是上限参考值，实际区间 15-40）<br>
+            人均日观看 = <b>2.5 次</b> · 组件使用率 = <b>60-70%</b>（v2.0 的 90% 过于乐观）
+          </div>
+          <div class="list" style="margin-top:10px">
+            <div class="list-item"><span class="li-ico">📊</span><span class="li-body">DAU 1,000 → 约 <b>60-80 元/日</b><div class="li-sub">v2.0 原估 150-300 元</div></span></div>
+            <div class="list-item"><span class="li-ico">📊</span><span class="li-body">DAU 5,000 → 约 <b>300-400 元/日</b><div class="li-sub">v2.0 原估 750-1,500 元</div></span></div>
+            <div class="list-item"><span class="li-ico">📊</span><span class="li-body">DAU 10,000 → 约 <b>600-800 元/日</b><div class="li-sub">v2.0 原估 1,500-3,000 元</div></span></div>
+          </div>
+          <div class="note mint" style="margin-top:10px">
+            <b>结论</b>：本项目真正的生死线不是"能不能做出来"，而是<b>能不能获得 DAU</b>。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 9. 设计规范 ==================== -->
+  <div class="demo-group" id="g9">
+    <div class="sec-head">
+      <h2>⑨ 设计规范（Design Token）</h2>
+      <p>对应产品文档 4.1 视觉风格定位。<b>柔和手绘 + Q 版卡通 + 温暖治愈</b>。</p>
+    </div>
+
+    <div class="block">
+      <div class="sec-title"><span class="dot"></span>色彩方案</div>
+      <p class="sec-sub">奶油白 / 淡粉 / 薄荷绿 / 鹅黄为主，辅以天蓝、珊瑚橙。低对比度，营造"软乎乎"的感受。</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:14px">
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#FFF9F0;border:1px solid rgba(122,92,74,.08)"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>奶油白</b><br><span style="color:var(--ink-soft)">#FFF9F0 · 底色</span></div>
+        </div>
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#FFD9DF"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>淡粉</b><br><span style="color:var(--ink-soft)">#FFD9DF · 强调</span></div>
+        </div>
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#C8EFDD"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>薄荷绿</b><br><span style="color:var(--ink-soft)">#C8EFDD · 成功</span></div>
+        </div>
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#FFE9A8"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>鹅黄</b><br><span style="color:var(--ink-soft)">#FFE9A8 · 奖励</span></div>
+        </div>
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#CDE8FF"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>天蓝</b><br><span style="color:var(--ink-soft)">#CDE8FF · 信息</span></div>
+        </div>
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#FFB59E"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>珊瑚橙</b><br><span style="color:var(--ink-soft)">#FFB59E · 高亮</span></div>
+        </div>
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#7A5C4A"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>木棕</b><br><span style="color:var(--ink-soft)">#7A5C4A · 文字</span></div>
+        </div>
+        <div style="border-radius:14px;overflow:hidden;box-shadow:var(--shadow)">
+          <div style="height:60px;background:#D9C4AE"></div>
+          <div style="padding:9px 11px;background:#fff;font-size:11px"><b>墙色</b><br><span style="color:var(--ink-soft)">#D9C4AE · 地形</span></div>
+        </div>
+      </div>
+      <div class="note mint" style="margin-top:14px">
+        <b>语义映射</b>：粉＝强调/情感 · 绿＝成功/进度 · 黄＝奖励/金币 · 蓝＝信息/提示 · 红粉＝警示/魔鬼关
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="sec-title"><span class="dot"></span>圆角与阴影</div>
+      <p class="sec-sub">圆润是"治愈系"的核心视觉语言。全部元素采用大圆角，避免任何锐角。</p>
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px">
+        <div style="text-align:center">
+          <div style="width:82px;height:56px;background:linear-gradient(135deg,#FFD9DF,#FFB3C1);border-radius:18px;box-shadow:var(--shadow)"></div>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin-top:7px">18px · 卡片</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:82px;height:56px;background:linear-gradient(135deg,#C8EFDD,#8FD9BC);border-radius:14px;box-shadow:var(--shadow)"></div>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin-top:7px">14px · 按钮</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:82px;height:56px;background:linear-gradient(135deg,#FFE9A8,#FFD666);border-radius:22px;box-shadow:var(--shadow-lg)"></div>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin-top:7px">22px · 弹窗</div>
+        </div>
+        <div style="text-align:center">
+          <div style="width:56px;height:56px;background:linear-gradient(135deg,#CDE8FF,#8FC7F0);border-radius:50%;box-shadow:var(--shadow)"></div>
+          <div style="font-size:10.5px;color:var(--ink-soft);margin-top:7px">圆形 · 头像</div>
+        </div>
+      </div>
+      <div class="note" style="margin-top:14px">
+        <b>按钮拟物感</b>：所有主按钮使用 <code>box-shadow: 0 5px 0 [深色]</code> 制造"厚度"，按下去时 shadow 变 2px，形成物理按压感。这是治愈系游戏的重要"手感"来源。
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="sec-title"><span class="dot"></span>反馈层级（对应产品文档 3.4）</div>
+      <p class="sec-sub">所有反馈都是<b>视觉可见</b>，不依赖音频（静音可玩）。</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px;margin-top:14px">
+        <div class="note mint" style="margin:0">
+          <b>操作反馈</b> 🐾<br>脚下小星星粒子 + 地面脚印
+        </div>
+        <div class="note mint" style="margin:0">
+          <b>推动反馈</b> 📦<br>物件轻微弹跳（cubic-bezier 回弹）
+        </div>
+        <div class="note mint" style="margin:0">
+          <b>传送带激活</b> 🌈<br>彩虹光效流动（background-position 动画）
+        </div>
+        <div class="note mint" style="margin:0">
+          <b>正确放置</b> ✦<br>星光台亮起 + 光晕呼吸
+        </div>
+        <div class="note mint" style="margin:0">
+          <b>全部完成</b> 🎉<br>全屏星星粒子绽放
+        </div>
+        <div class="note warn" style="margin:0">
+          <b>卡关</b> 🙁<br>非羞辱文案"再想想？"+ 提示可撤销
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="sec-title"><span class="dot"></span>文案基调</div>
+      <p class="sec-sub">治愈系的核心是"永远不指责玩家"。</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px;font-size:12px">
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#4CAF7D;margin-bottom:7px">✅ 应该这样说</div>
+          <div style="background:rgba(143,217,188,.14);border-radius:11px;padding:11px;line-height:2">
+            "再想想，你一定可以"<br>
+            "就差一步啦"<br>
+            "小松鼠说它也没办法 🥺"<br>
+            "你比 92% 的镇民都聪明"
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:800;color:#C4506A;margin-bottom:7px">❌ 不该这样说</div>
+          <div style="background:rgba(255,179,193,.14);border-radius:11px;padding:11px;line-height:2">
+            "失败！"<br>
+            "你太菜了"<br>
+            "分享才能继续"<br>
+            "你落后了 X 步"
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
+      <div class="sec-title"><span class="dot"></span>本交互稿与产品文档的对应关系</div>
+      <p class="sec-sub">所有设计均可追溯到产品文档 v3.0 的具体章节。</p>
+      <div style="overflow-x:auto;margin-top:12px">
+        <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px">
+          <thead>
+            <tr style="background:rgba(255,233,168,.3)">
+              <th style="text-align:left;padding:9px 11px;border-radius:9px 0 0 9px">交互稿页面</th>
+              <th style="text-align:left;padding:9px 11px">产品文档章节</th>
+              <th style="text-align:left;padding:9px 11px;border-radius:0 9px 9px 0">关键设计点</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">① 主菜单</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">1.1 / 3.5</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">3 秒建立情绪；主按钮唯一</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">② 选关地图</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">3.3 / 6.3</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">魔鬼关卡前置造势；星级＝步数</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">③ 游戏内</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">3.1 / 3.4</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">滑动操作；HUD 显示最少步数</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">④ 魔鬼关卡</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.3 / 6.8</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">看似能过；不羞辱；防口碑雷</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑤ 求助机制</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.4</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">加油/传地址；防骚扰三约束</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑥ 异步 PK</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.5</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">废弃镜像版；隐藏对方成绩</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑦ 排行榜</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.5 / 6.6</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">"差一点"高亮；不做总榜</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑧ 变现触发点</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">7.2 / 7.4</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">5 个触发点；收入预期修正</td></tr>
+            <tr><td style="padding:9px 11px">⑨ 设计规范</td><td style="padding:9px 11px">4.1 / 3.4</td><td style="padding:9px 11px">色彩/圆角/反馈/文案基调</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ==================== 导航切换 ==================== */
+const navBtns = document.querySelectorAll('#nav button');
+navBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    navBtns.forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    document.querySelectorAll('.demo-group').forEach(g => g.classList.remove('active'));
+    document.getElementById(btn.dataset.g).classList.add('active');
+    window.scrollTo({top:0, behavior:'smooth'});
+  });
+});
+
+/* ==================== 游戏内棋盘（可交互演示） ==================== */
+/**
+ * 关卡配置（6×6）—— 对应《云朵小镇》第 12 关简化版
+ * W=墙, .=空地, T=星光台, C=传送带, S=滑梯, J=弹簧
+ */
+const LEVEL_12 = {
+  size: 6,
+  grid: [
+    ['W','W','W','W','W','W'],
+    ['W','.','.','T','.','W'],
+    ['W','.','C','C','.','W'],
+    ['W','.','.','.','T','W'],
+    ['W','.','.','.','.','W'],
+    ['W','W','W','W','W','W'],
+  ],
+  boxes: [
+    { id:'b1', emoji:'🎃', bg:'linear-gradient(135deg,#FFE0C2,#FFB77E)', x:2, y:4 },
+    { id:'b2', emoji:'🎁', bg:'linear-gradient(135deg,#FFD9DF,#FFB3C1)', x:4, y:2 },
+  ],
+  player: { x:1, y:3 },
+  targets: [{x:3,y:1},{x:4,y:3}],
+  conveyors: [{x:2,y:2},{x:3,y:2}],
+  optimalSteps: 18,
+};
+
+// 运行时状态副本
+let st = null;
+
+function initLevel() {
+  st = {
+    boxes: LEVEL_12.boxes.map(b => ({...b})),
+    player: {...LEVEL_12.player},
+    steps: 0,
+    history: [],
+  };
+  renderBoard();
+}
+
+function cloneState() {
+  return {
+    boxes: st.boxes.map(b => ({...b})),
+    player: {...st.player},
+    steps: st.steps,
+    history: [...st.history],
+  };
+}
+
+/** 判断坐标是否是墙 / 越界 */
+function isWall(x, y) {
+  if (x < 0 || y < 0 || x >= LEVEL_12.size || y >= LEVEL_12.size) return true;
+  return LEVEL_12.grid[y][x] === 'W';
+}
+
+/** 判断坐标是否是星光台 */
+function isTarget(x, y) {
+  return LEVEL_12.targets.some(t => t.x === x && t.y === y);
+}
+
+/** 获取该格上的物件 */
+function boxAt(x, y) {
+  return st.boxes.find(b => b.x === x && b.y === y);
+}
+
+/** 判断该格是否是传送带 */
+function isConveyor(x, y) {
+  return LEVEL_12.conveyors.some(c => c.x === x && c.y === y);
+}
+
+const DIRS = {
+  up:    {dx: 0, dy: -1},
+  down:  {dx: 0, dy:  1},
+  left:  {dx:-1, dy:  0},
+  right: {dx: 1, dy:  0},
+};
+
+/** 执行移动（简化版推箱子 + 传送带） */
+function doMove(dir) {
+  const d = DIRS[dir];
+  if (!d) return;
+
+  const nx = st.player.x + d.dx;
+  const ny = st.player.y + d.dy;
+
+  // 撞墙 → 拒绝
+  if (isWall(nx, ny)) { shake(); return; }
+
+  const box = boxAt(nx, ny);
+  if (box) {
+    // 需要推动：检查物件目标格
+    const bx = nx + d.dx;
+    const by = ny + d.dy;
+
+    // 物件目标格被墙或其他物件占据 → 推不动
+    if (isWall(bx, by) || boxAt(bx, by)) {
+      shake();
+      return;
+    }
+
+    // 压入历史
+    st.history.push(cloneState());
+
+    // 推动物件
+    box.x = bx;
+    box.y = by;
+
+    // 简单传送带效果：物件落到传送带上 → 沿传送带方向前进一格
+    if (isConveyor(box.x, box.y)) {
+      const cx = box.x + 1; // 传送带向右
+      if (!isWall(cx, box.y) && !boxAt(cx, box.y)) {
+        setTimeout(() => {
+          box.x = cx;
+          renderBoard();
+        }, 220);
+      }
+    }
+  } else {
+    st.history.push(cloneState());
+  }
+
+  // 移动玩家
+  st.player.x = nx;
+  st.player.y = ny;
+  st.steps += 1;
+
+  renderBoard();
+
+  // 胜利判定
+  const won = LEVEL_12.targets.every(t => st.boxes.some(b => b.x === t.x && b.y === t.y));
+  if (won) {
+    setTimeout(() => alert('🎉 通关！\n你用了 ' + st.steps + ' 步（最少步数 ' + LEVEL_12.optimalSteps + '）'), 260);
+  }
+}
+
+function undo() {
+  if (!st.history.length) return;
+  const prev = st.history.pop();
+  st = {
+    boxes: prev.boxes,
+    player: prev.player,
+    steps: Math.max(0, prev.steps - 1),
+    history: prev.history,
+  };
+  renderBoard();
+}
+
+function doReset() {
+  initLevel();
+}
+
+function doHint() {
+  alert('💡 提示\n先推动【小南瓜】到传送带上，让它自动送到右侧～');
+}
+
+function shake() {
+  const b = document.getElementById('board');
+  b.animate([
+    {transform:'translateX(0)'},
+    {transform:'translateX(-5px)'},
+    {transform:'translateX(5px)'},
+    {transform:'translateX(0)'},
+  ], {duration:230, easing:'ease-in-out'});
+}
+
+/** 渲染棋盘 */
+function renderBoard() {
+  const board = document.getElementById('board');
+  if (!board || !st) return;
+
+  let html = '';
+  for (let y = 0; y < LEVEL_12.size; y++) {
+    for (let x = 0; x < LEVEL_12.size; x++) {
+      const cell = LEVEL_12.grid[y][x];
+      let cls = 'tile';
+      let inner = '';
+
+      if (cell === 'W') cls += ' wall';
+      if (isTarget(x, y)) cls += ' target';
+      if (isConveyor(x, y)) cls += ' conveyor';
+
+      // 物件
+      const box = boxAt(x, y);
+      if (box) {
+        const onT = isTarget(x, y);
+        inner += `<div class="box${onT ? ' on-target' : ''}" style="background:${box.bg}">${box.emoji}</div>`;
+      }
+
+      // 玩家
+      if (st.player.x === x && st.player.y === y) {
+        inner += `<div class="player fox">🦊</div>`;
+      }
+
+      html += `<div class="${cls}">${inner}</div>`;
+    }
+  }
+  board.innerHTML = html;
+
+  const sv = document.getElementById('stepVal');
+  if (sv) sv.textContent = st.steps;
+}
+
+/* 键盘支持（方便桌面测试） */
+document.addEventListener('keydown', e => {
+  const map = {ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right'};
+  if (map[e.key]) { e.preventDefault(); doMove(map[e.key]); }
+  if (e.key === 'z' || e.key === 'Z') undo();
+  if (e.key === 'r' || e.key === 'R') doReset();
+});
+
+/* 触摸滑动支持 */
+(function(){
+  let sx = 0, sy = 0, tracking = false;
+  const board = document.getElementById('board');
+  if (!board) return;
+
+  board.addEventListener('touchstart', e => {
+    if (!e.touches.length) return;
+    sx = e.touches[0].clientX;
+    sy = e.touches[0].clientY;
+    tracking = true;
+  }, {passive:true});
+
+  board.addEventListener('touchmove', e => {
+    if (!tracking) return;
+    e.preventDefault();
+    const dx = e.touches[0].clientX - sx;
+    const dy = e.touches[0].clientY - sy;
+    if (Math.abs(dx) < 30 && Math.abs(dy) < 30) return;
+    tracking = false;
+    if (Math.abs(dx) > Math.abs(dy)) doMove(dx > 0 ? 'right' : 'left');
+    else doMove(dy > 0 ? 'down' : 'up');
+  }, {passive:false});
+
+  board.addEventListener('touchend', () => { tracking = false; }, {passive:true});
+})();
+
+initLevel();
+</script>
+</body>
+</html>
