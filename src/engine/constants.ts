@@ -33,3 +33,10 @@ export const MARGIN_BY_TIER: Record<MarginTier, number> = {
   normal: 5, // 普通关 +4~6（取中值）
   devil: 1, // 魔鬼关 +1~2（取最紧）
 };
+
+/** 容错余量档位 → 允许的余量区间（关卡校验器使用） */
+export const TIER_MARGIN_RANGE: Record<MarginTier, [number, number]> = {
+  tutorial: [8, 10],
+  normal: [4, 6],
+  devil: [1, 2],
+};

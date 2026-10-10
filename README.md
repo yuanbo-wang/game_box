@@ -92,9 +92,15 @@ docs/
 prototype/
   └── index.html              高保真交互稿 v2.0（9 模块，已同步 v4.0 玩法）
 src/
-  └── engine/                 限步推箱子引擎（纯函数 · 零 Phaser 依赖 · C1-C10）
+  ├── engine/                 限步推箱子引擎（纯函数 · 零 Phaser 依赖 · C1-C10）
+  └── levels/                 关卡数据（第一章 10 关，生成 + 校验管线产出）
 tests/
-  └── engine/                 引擎单元测试（Vitest · 47 用例全绿）
+  ├── engine/                 引擎单元测试（Vitest · 47 用例）
+  └── levels/                 关卡产物验证（确定性 + 全量过校验器）
+tools/
+  ├── generator.ts            关卡生成器（反向构造 + 传送带注入，种子确定性）
+  ├── validator.ts            关卡校验器（可解性 / 区间 / 余量档 / 封闭性）
+  └── buildLevels.ts          第一章构建脚本（vite-node tools/buildLevels.ts）
 新建 文本文档.md              原始产品文档 v2.0（保留对照）
 ```
 
