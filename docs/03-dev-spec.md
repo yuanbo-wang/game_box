@@ -4,6 +4,7 @@
 > 配套流程图：`docs/02-flowcharts.md`
 > 文档版本：v2.0 | 编写日期：2026 年 10 月
 > v2.0 变更：引擎层引入**限步通关与步数锁死**（撤销不返还步数）、新增**小镇每日赛**后端设计（替代 1v1 挑战为主链路）、新增每日赛关卡预生成管线
+> 修订：2026-10-10 与 PRD v1.2 同步（`DailyAttempt` 契约 / `usedRevive` 事实来源 / `beatPercent`+`total` 快照 / duration 下界校验 / 广告降级口径 / 每日赛余量档）
 
 ---
 
@@ -758,7 +759,7 @@ export class AdAdapterImpl implements AdAdapter {
 
     this.rewardedAd.onLoad(() => this.onLoadCb?.());
     this.rewardedAd.onError((err: any) => {
-      // ⚠️ 降级：广告加载失败 → 走分享求助
+      // ⚠️ 降级：广告加载失败 → 按阶段降级（MVP-2「稍后再试」轻提示 / v1.0 起「分享求助」）
       this.onErrorCb?.(err);
     });
     this.rewardedAd.onClose((res: any) => {
@@ -790,9 +791,11 @@ export class AdAdapterImpl implements AdAdapter {
 
 | 事件 | 处理 |
 |:---|:---|
-| `onLoad` | 记录"广告可用"，UI 才显示"看广告"按钮 |
-| `onError` | **降级为"分享求助"**，不能卡死流程 |
+| `onLoad` | 记录"广告可用"，UI 才显示"看广告"按钮（开始拉取后 **3s 内既无 `onLoad` 也无 `onError`** 视为静默失败 → 按"广告不可用"处理） |
+| `onError` | **按阶段降级**（与 PRD FR-15 一致）：MVP-2「稍后再试」轻提示 / v1.0 起「分享求助」，不能卡死流程 |
 | `onClose` | **必须检查 `isEnded`**，`false` 时不发奖励 |
+
+> **降级口径（与 PRD v1.2 / FR-15 对齐）**：`onError` 与"3s 静默失败"统一走**阶段化降级**——MVP-2 为「稍后再试」轻提示、v1.0 起为「分享求助」，均不阻塞主流程。旧表述"一律降级为分享求助"已废弃。
 
 ### 7.4 开放数据域（好友排行榜 · v1.1）
 
@@ -840,14 +843,26 @@ interface DailyChallenge {
   createdAt: number;
 }
 
+/** 每日赛挑战（一次机会的服务端载体；进入即写入） */
+interface DailyAttempt {
+  _id: string;
+  date: string;             // 开始日的服务端日期（'YYYY-MM-DD'；跨零点提交按此计入）
+  openId: string;
+  startedAt: number;
+  usedRevive: boolean;      // 是否用过加步复活（每日 1 次，服务端权威，客户端入参不采用）
+  // 唯一约束：(date, openId) —— 一次机会 + 堵死"打几步→退出→重进"的变相重开
+}
+
 /** 每日赛成绩 */
 interface DailyResult {
   _id: string;
-  date: string;             // 与 DailyChallenge 对应
+  date: string;             // 与 DailyChallenge / DailyAttempt 对应（= 开始日）
   openId: string;
   steps: number;            // 消耗步数（越少越好）
-  duration: number;         // 用时（秒，步数并列时比较用）
-  usedRevive: boolean;      // 是否用过加步复活（每日 1 次）
+  duration: number;         // 用时（秒，步数并列时比较用；客户端上报）
+  usedRevive: boolean;      // 是否用过加步复活（快照自 DailyAttempt，每日 1 次）
+  beatPercent: number;      // 击败百分比（提交成功时快照落库，此后固定不变）
+  total: number;            // 当日提交总人数（提交时快照；用于判定是否降级展示）
   submittedAt: number;
   // 唯一约束：(date, openId)
 }
@@ -878,31 +893,46 @@ interface Challenge {
 
 | 云函数 | 职责 | 关键逻辑 |
 |:---|:---|:---|
-| `getDailyChallenge` | 获取今日赛信息 | 按 `date` 查关卡；查我的 `DailyResult` 判定状态（未挑战/已挑战）；**不返回他人成绩** |
-| `submitDailyResult` | 提交成绩 | 校验链（见下）；写入 `DailyResult`；返回击败百分比 |
+| `getDailyChallenge` | 获取今日赛信息 | 按 `date` 查关卡；依 `DailyAttempt` 判定状态（无记录=未挑战 / 有记录未提交=挑战中·当日可续玩 / 已提交=已提交）；已提交用户返回 `{mySteps, beatPercent, total}`（**快照值**）；**不返回他人成绩** |
+| `submitDailyResult` | 提交成绩 | 校验链（见下，含幂等）；写入 `DailyResult`（提交时快照 `beatPercent` / `total`）；返回 `{mySteps, beatPercent, total}` |
 | `sendHelp` | 发起求助 | **校验每日 3 次 + 好友 24h 冷却** |
 | `dailySettlement`（定时触发） | 每日结算 | 00:00 激活当天预生成关卡、归档昨日分布 |
 
 **`submitDailyResult` 校验链（关键）**：
 
 ```typescript
-// ① 日期必须是今天（防伪造历史成绩）
-if (date !== today()) return { error: 'INVALID_DATE' };
+// ⓪ 载入本次挑战的服务端记录：以 attemptId 定位（不采用客户端 date 作检索键，防伪造 / 跨零点歧义）
+const attempt = await getAttemptById(attemptId);
+if (!attempt || attempt.openId !== openId) return { error: 'NO_ATTEMPT' };   // 未开始 / 非本人
+//   备用：若客户端未回传 attemptId，服务端按 openId 取"当日最近一条未提交 attempt"；一律忽略客户端 date
+// ⓪-1 时效界：仅允许在"开始日当日"或"跨零点次日"提交；更早的未提交 attempt 视为作废（防延迟补交刷旧日榜）
+const srvToday = today();                                                   // 服务端日期
+if (attempt.date !== srvToday && attempt.date !== formatDate(addDays(srvToday, -1)))
+  return { error: 'EXPIRED' };
+// ⓪' 幂等：该 attempt 已有成绩 → 直接返回既有成绩（重试不消耗第二次机会）
+const existing = await getResult(attempt.date, openId);
+if (existing) return { status: 'ok', ...existing, idempotent: true };
+
+// ① 日期一律取开始日的服务端日期（attempt.date；跨零点提交按开始日计，防伪造历史成绩）
+const submitDate = attempt.date;
 
 // ② 步数必须在合法区间（服务端用关卡配置重算，不信任客户端）
-const cfg = await getChallengeByDate(date);
+const cfg = await getChallengeByDate(attempt.date);
 const { optimalSteps, maxSteps } = cfg.meta;
-const budget = maxSteps + (usedRevive ? 3 : 0);   // 复活 +3
+const budget = maxSteps + (attempt.usedRevive ? 3 : 0);    // 复活 +3（以服务端 attempt.usedRevive 为准）
 if (steps < optimalSteps || steps > budget) {
   return { error: 'INVALID_STEPS' };
 }
 
-// ③ 每日一次机会（(date, openId) 唯一约束）
-//    已存在记录 → 直接拒绝（产品口径：一次机会）
-if (await hasResult(date, openId)) return { error: 'ALREADY_ATTEMPTED' };
+// ③ 每日一次机会（(date, openId) 数据库唯一索引强制；重复提交已由 ⓪' 幂等早返回覆盖，无需再查）
+// ④ 复活次数校验（每日 1 次）——以服务端 DailyAttempt.usedRevive 为准，客户端入参 usedRevive 一律不采用
 
-// ④ 复活次数校验（每日 1 次，服务端计数）
+// ⑤ duration 下界一致性（duration ≥ steps × 0.3s；阈值服务端配置下发，可热调）
+const MIN_STEP_MS = await getServerConfig('MIN_STEP_MS', 300);   // 默认 0.3s/步
+const durationSuspect = duration * 1000 < steps * MIN_STEP_MS;   // 疑似异常 → 标记待复核（不阻断提交）
 ```
+
+> **校验链要点（与 PRD v1.2 §11.3 对齐）**：以 **`attemptId` 定位服务端 `DailyAttempt`**（不采用客户端 `date`），日期 / `usedRevive` 均取自该记录而非客户端入参；**新增时效界（仅当日/跨零点次日可提交）**；重复提交幂等；duration 下界一致性校验（仅标记，不参与绝对胜负判定，残余风险见 PRD §11.3）。
 
 **`submitDailyResult` 的返回**：
 
@@ -910,9 +940,9 @@ if (await hasResult(date, openId)) return { error: 'ALREADY_ATTEMPTED' };
 {
   status: 'ok',
   mySteps: 5,
-  beatPercent: 87,     // "击败 87% 的镇民"
-  total: 1024,         // 今日参赛人数（可选展示）
-  // ⚠️ 不返回任何个人排名、不返回他人步数——只给百分比
+  beatPercent: 87,     // "击败 87% 的镇民"（提交成功时快照落库到 DailyResult，此后固定不变）
+  total: 1024,         // 当日提交总人数（提交时快照；<20 时客户端降级为"今日已有 N 位镇民完成"）
+  // ⚠️ 不返回任何个人排名、不返回他人步数——只给百分比 / 聚合人数
 }
 ```
 
@@ -922,8 +952,10 @@ if (await hasResult(date, openId)) return { error: 'ALREADY_ATTEMPTED' };
 |:---|:---|
 | 客户端伪造步数 | 服务端用关卡配置**重算最优步数**，`steps < optimalSteps` 或 `> 预算` → 拒绝 |
 | 重复提交刷分 | `(date, openId)` 唯一约束 + 一次机会判定；服务端口径，不信任客户端 |
-| 复活次数刷取 | `usedRevive` 服务端计数（每日 1 次） |
+| 复活次数刷取 | 以服务端 `DailyAttempt.usedRevive` 为准（每日 1 次，客户端入参不采用） |
 | 刷求助次数 | 服务端计数，不信任客户端 |
+
+> **目标边界（与 PRD v1.2 §11.3 对齐）**：本版本为 **区间校验 + 一次机会 + 服务端计数** 的"防作弊基础校验链"，**不承诺完全防刷**（服务端不重放操作，`steps` 与棋盘快照为客户端权威）；已知残余风险与后续加固方向见 PRD §11.3。
 
 ### 8.5 每日赛关卡预生成管线（v4.0 新增）
 
@@ -939,6 +971,7 @@ async function generateDailyChallenges(days: number) {
       cfg = reverseGenerate({ gridSize: [6, 6], boxes: 2 });
     } while (!validateDailyLevel(cfg));          // 校验不通过则重生成
 
+    cfg = deriveDailyBudget(cfg);                // 派生 maxSteps 并写入 meta（PRD v1.2）
     await insertChallenge({ date, levelId: cfg.id, config: cfg });
   }
 }
@@ -952,12 +985,24 @@ function validateDailyLevel(cfg: LevelConfig): boolean {
     isEnclosed(cfg)                          // 地图封闭
   );
 }
+
+/**
+ * 每日赛步数预算派生（PRD v1.2）：maxSteps = optimalSteps + 每日赛余量(+4~6)
+ * 每日赛单列"每日赛档"，不套用教学/普通/魔鬼三档；写入 meta 供服务端计算步数上界
+ */
+function deriveDailyBudget(cfg: LevelConfig): LevelConfig {
+  const optimal = computeOptimalSteps(cfg);
+  cfg.meta.optimalSteps = optimal;
+  cfg.meta.maxSteps = optimal + DAILY_TOLERANCE;   // DAILY_TOLERANCE ∈ [4, 6]
+  return cfg;
+}
 ```
 
 **运行要求**：
 
 - **幂等**：重复执行不覆盖已存在的日期（防误删重跑）
 - **提前量**：始终保持 ≥30 天预生成余量；断供时客户端降级"昨日关卡重玩"
+- **步数预算派生（PRD v1.2）**：入库前 `maxSteps = optimalSteps + 每日赛余量(+4~6)`（**每日赛档**），写入 `config.meta.maxSteps`；服务端据此计算步数上界（见 8.3 校验链②）
 - **人工抽检**：每周抽检 1-2 关，重点看"直觉解法是否是陷阱"（每日赛不宜过度魔鬼化）
 
 ---

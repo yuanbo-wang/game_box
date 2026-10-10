@@ -23,6 +23,8 @@
 | [开发文档](docs/03-dev-spec.md) | Phaser 3 + TS 架构、引擎 API（限步/步数锁死）、每日赛后端 | 开发 |
 | [精细执行步骤](docs/04-task-breakdown.md) | 3×2 周 MVP 验证节奏、WBS、Go/No-Go 判据 | 项目执行 |
 | [交互稿](prototype/index.html) | 9 个可点击高保真页面原型（待按 v4.0 玩法更新） | 全员 |
+| [需求梳理与可行性评估](docs/05-requirement-and-feasibility.md) | 精简版需求梳理（目标/方案对比/风险/下一步）+ 六维可行性评估 | 决策者 |
+| [产品需求文档 PRD](docs/06-prd.md) | 15 段完整 PRD：18 条功能需求（GWT 验收）、需求优先级（MoSCoW + RICE）、异常处理清单、依赖三档分级、RTM | 研发、测试 |
 
 ## 交互稿
 
@@ -83,7 +85,9 @@ docs/
   ├── 01-product-spec.md      产品文档 v4.0
   ├── 02-flowcharts.md        流程图（Mermaid，8 张）
   ├── 03-dev-spec.md          开发文档 v2.0
-  └── 04-task-breakdown.md    精细执行步骤（3×2 周 MVP 节奏）
+  ├── 04-task-breakdown.md    精细执行步骤（3×2 周 MVP 节奏）
+  ├── 05-requirement-and-feasibility.md  需求梳理（精简版）与可行性评估
+  └── 06-prd.md               产品需求文档（15 段完整版 PRD）
 prototype/
   └── index.html              高保真交互稿（9 模块，待按 v4.0 更新）
 新建 文本文档.md              原始产品文档 v2.0（保留对照）

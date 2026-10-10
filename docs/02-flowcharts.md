@@ -2,6 +2,7 @@
 
 > 本文档使用 Mermaid 语法编写，在 Gitee / GitHub / VS Code（需 Mermaid 插件）中可直接渲染。
 > 对应产品文档：`docs/01-product-spec.md` v4.0
+> 修订：2026-10-10 与 PRD v1.2 同步（图 4 补「提交中/待确认」态与幂等重试迁移、机会消耗口径与 FR-10 / 9.2 对齐）
 
 ---
 
@@ -178,9 +179,9 @@ stateDiagram-v2
     Failed --> Idle: 看广告加步复活<br/>stepBudget += 3
     Failed --> [*]: 重开本关 / 放弃
 
-    state "死局判定" as Deadlock {
-        [*] --> 计算可行解: 贪心验证
-        计算可行解 --> 无解: 剩余步数不足
+    state "死局判定（启发式）" as Deadlock {
+        [*] --> 计算可行解: 有限深度 BFS（深度上限 10）
+        计算可行解 --> 无解: 已无可达解（软提示，不触发失败）
         计算可行解 --> 有解: 尚可挽回
     }
 ```
@@ -195,36 +196,42 @@ stateDiagram-v2
 
 ```mermaid
 stateDiagram-v2
+    state "提交中 / 待确认" as 提交中
+
     [*] --> 拉取今日赛: 进入每日赛
-    拉取今日赛 --> 判定期次: 服务端返回今日关卡
+    拉取今日赛 --> 判定期次: getDailyChallenge 依 DailyAttempt / DailyResult 判状态
 
-    判定期次 --> 未挑战: 今日未挑战
-    判定期次 --> 已挑战: 今日已挑战
+    判定期次 --> 未挑战: 无 DailyAttempt（未挑战）
+    判定期次 --> 挑战中: 有 DailyAttempt 未提交（当日可续玩）
+    判定期次 --> 已提交: 已提交且校验通过
 
-    未挑战 --> 挑战中: 开始（消耗今日机会）
+    未挑战 --> 挑战中: 开始（消耗今日机会 · 服务端写 DailyAttempt）
     挑战中 --> 加步复活: 步数耗尽
     note right of 加步复活
         看激励视频 → stepBudget += 3
-        每日仅 1 次
+        每日仅 1 次（服务端计数）
     end note
     加步复活 --> 挑战中
 
     挑战中 --> 通关: 步数预算内完成
     挑战中 --> 未完成: 复活用尽仍未过
 
-    通关 --> 提交成绩: 上报步数 / 用时
-    提交成绩 --> 结果与排名: "用了 5 步 · 击败 87% 的镇民"
+    通关 --> 提交中: submitDailyResult（上报步数 / 用时）
+    提交中 --> 已提交: 校验通过
+    提交中 --> 提交中: 超时 / 响应丢失 → 幂等重试<br/>（幂等键 = date + openId；返回既有成绩、不消耗第二次机会）
+
+    已提交 --> 结果与排名: "用了 5 步 · 击败 87% 的镇民"（beatPercent 快照）
     结果与排名 --> 生成海报: 分享截图
     生成海报 --> [*]
 
     未完成 --> [*]: 今日无成绩<br/>明早 00:00 新关卡
 
-    已挑战 --> [*]: 查看成绩 / 排名
+    已提交 --> [*]: 查看成绩 / 排名（快照固定、不回切）
 
     state 判定期次 as "机会判定（服务端）" {
-        [*] --> 校验: 查询 openId 今日 attempts
-        校验 --> 可用: attempts = 0
-        校验 --> 已用: attempts >= 1
+        [*] --> 校验: 查询 openId 今日 DailyAttempt
+        校验 --> 可开始: 无 attempt（未挑战）
+        校验 --> 不可重开: 有 attempt（挑战中 / 已提交）
     }
 ```
 
@@ -433,10 +440,10 @@ sequenceDiagram
 
 | 约束 | 说明 |
 |:---|:---|
-| 一次机会 | `getDailyChallenge` 依据 `attempts` 判定；不信任客户端 |
-| 加步仅一次 | 复活次数服务端计数，每日上限 1 |
-| 成绩合法 | `submitDailyResult` 校验 `optimalSteps ≤ steps ≤ stepBudget`，越界拒绝 |
-| 不提前揭晓 | 提交前不返回他人成绩，只返回分布统计（击败百分比） |
+| 一次机会 | `getDailyChallenge` 依据 `DailyAttempt` 判定（无记录=未挑战 / 有记录未提交=挑战中 / 已提交）；**进入即消耗机会**；不信任客户端 |
+| 加步仅一次 | 复活次数以服务端 `DailyAttempt.usedRevive` 计数，每日上限 1 |
+| 成绩合法 | `submitDailyResult` 校验 `optimalSteps ≤ steps ≤ maxSteps（+3 若 usedRevive）`，越界拒绝；日期取 `DailyAttempt.date` |
+| 不提前揭晓 | 提交前不返回他人成绩，只返回聚合分布（击败百分比 / 提交总人数） |
 
 ---
 
