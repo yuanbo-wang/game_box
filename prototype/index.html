@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>云朵小镇·推推奇遇 — 交互稿 v1.0</title>
+<title>云朵小镇·推推奇遇 — 交互稿 v2.0（v4.0 玩法同步）</title>
 <style>
   :root{
     /* 治愈系配色规范（对应产品文档 4.1） */
@@ -391,6 +391,20 @@
   }
   .act-row{display:flex;gap:8px;justify-content:center}
 
+  /* ---------- 步数告急（v4.0 三信号：变红 + HUD 泛红描边 + 心跳闪烁） ---------- */
+  .hud .h-val.low{color:#E24B4A;animation:lowPulse .9s ease-in-out infinite}
+  .hud.hud-low{background:rgba(255,214,214,.85);box-shadow:0 0 0 2px rgba(226,75,74,.28),var(--shadow)}
+  @keyframes lowPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.12)}}
+
+  /* ---------- 轻提示 toast（撤销不返还 / 复活等） ---------- */
+  .toast{
+    position:absolute;left:50%;bottom:98px;transform:translateX(-50%);
+    background:rgba(92,74,63,.86);color:#FFF6EA;font-size:11px;font-weight:700;
+    padding:7px 14px;border-radius:11px;z-index:70;white-space:nowrap;
+    animation:toastIn .25s ease;pointer-events:none;display:none;
+  }
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,8px)}to{opacity:1;transform:translate(-50%,0)}}
+
   /* ---------- 弹窗 ---------- */
   .mask{
     position:absolute;inset:0;background:rgba(92,74,63,.36);
@@ -542,16 +556,16 @@
 
   <div class="page-head">
     <h1>云朵小镇 · 推推奇遇</h1>
-    <p>高保真交互稿 v1.0 &nbsp;|&nbsp; 治愈系萌宠小镇 · 推箱子解谜 · 三层社交结构</p>
+    <p>高保真交互稿 v2.0（已同步 v4.0 玩法）&nbsp;|&nbsp; 限步推箱子 · 步数锁死 · 小镇每日赛</p>
   </div>
 
   <nav class="nav" id="nav">
     <button class="on" data-g="g1">主菜单</button>
     <button data-g="g2">选关地图</button>
-    <button data-g="g3">游戏内</button>
+    <button data-g="g3">游戏内（限步）</button>
     <button data-g="g4">魔鬼关卡</button>
     <button data-g="g5">求助机制</button>
-    <button data-g="g6">异步 PK</button>
+    <button data-g="g6">小镇每日赛</button>
     <button data-g="g7">排行榜</button>
     <button data-g="g8">变现触发点</button>
     <button data-g="g9">设计规范</button>
@@ -599,14 +613,17 @@
                 <button class="btn btn-primary" onclick="alert('→ 进入第 12 关（当前进度）')">
                   <span class="btn-icon">🎮</span> 继续游戏
                 </button>
+                <button class="btn btn-pink btn-sm" style="width:100%" onclick="alert('→ 进入「小镇每日赛」\n全服同题 · 每人一次机会 · 比步数')">
+                  <span class="btn-icon">🏘️</span> 小镇每日赛 · 今日尚未挑战
+                </button>
                 <div class="btn-row">
                   <button class="btn btn-mint btn-sm" onclick="alert('→ 切到「选关地图」标签页')">
                     <span class="btn-icon">🗺️</span> 选关
                   </button>
-                  <button class="btn btn-pink btn-sm" onclick="alert('→ 切到「排行榜」标签页')">
+                  <button class="btn btn-ghost btn-sm" onclick="alert('→ 切到「排行榜」标签页（v1.1 扩展）')">
                     <span class="btn-icon">🏆</span> 排行
                   </button>
-                  <button class="btn btn-ghost btn-sm" onclick="document.getElementById('settingsMask').style.display='flex'">
+                  <button class="btn btn-ghost btn-sm" style="flex:0 0 46px" onclick="document.getElementById('settingsMask').style.display='flex'">
                     <span class="btn-icon">⚙️</span>
                   </button>
                 </div>
@@ -660,6 +677,10 @@
           <div class="note mint">
             <b>③ 进度可视化</b><br>
             显示"12/30 关 + 星星数 + 当前章节"，制造"我快打完了"的推进感（对应筛选器 B：技巧天花板）。
+          </div>
+          <div class="note mint">
+            <b>④ 每日赛入口（v4.0 新增）</b><br>
+            主菜单二等入口固定展示"今日尚未挑战"状态 —— 每天给玩家一个<b>固定回访理由</b>（获客引擎，对应 PRD FR-10）。
           </div>
           <div class="note warn">
             <b>⚠️ 静音无障碍（v3.0 修正项）</b><br>
@@ -752,11 +773,11 @@
     </div>
   </div>
 
-  <!-- ==================== 3. 游戏内 ==================== -->
+  <!-- ==================== 3. 游戏内（限步） ==================== -->
   <div class="demo-group" id="g3">
     <div class="sec-head">
-      <h2>③ 游戏内（核心玩法）</h2>
-      <p>棋盘 + HUD + 滑动/方向键操作。下方演示"传送带"机制的交互与事件反馈。</p>
+      <h2>③ 游戏内 · 限步通关（v4.0 核心）</h2>
+      <p>每关有<b>步数预算</b>，耗尽未完成即失败（过 / 不过 二值化）。撤销回退棋盘但<b>步数不返还</b>。</p>
     </div>
 
     <div class="grid-2">
@@ -771,20 +792,20 @@
             </div>
 
             <div class="game-area">
-              <!-- HUD -->
+              <!-- HUD：剩余步数最醒目（v4.0） -->
               <div class="hud">
                 <div class="h-item">
-                  <div class="h-val" id="stepVal">0</div>
-                  <div class="h-key">当前步数</div>
+                  <div class="h-val" id="leftVal">28</div>
+                  <div class="h-key">剩余步数</div>
                 </div>
                 <div class="h-div"></div>
                 <div class="h-item">
-                  <div class="h-val best">18</div>
-                  <div class="h-key">最少步数</div>
+                  <div class="h-val" style="color:var(--ink-soft)">28</div>
+                  <div class="h-key">步数上限</div>
                 </div>
                 <div class="h-div"></div>
                 <div class="h-item">
-                  <div class="h-val" style="color:#8FD9BC">2</div>
+                  <div class="h-val" id="placeVal" style="color:#8FD9BC">0/2</div>
                   <div class="h-key">星光台</div>
                 </div>
               </div>
@@ -814,38 +835,59 @@
               </div>
               <div class="act-row">
                 <span class="tag pink">💡 提示 3 次免费</span>
-                <span class="tag mint">↩ 无限撤销</span>
+                <span class="tag mint">↩ 撤销 · <b>步数不返还</b></span>
+              </div>
+              <div class="pad-hint" style="margin-top:2px">▶ <a href="javascript:void(0)" onclick="demoFail()" style="color:#C4506A;font-weight:800">演示：步数耗尽 → 失败与复活</a></div>
+            </div>
+
+            <!-- 失败与复活弹窗（可交互演示） -->
+            <div class="mask" id="failMask" style="display:none">
+              <div class="modal">
+                <span class="m-emoji">🌙</span>
+                <h3>步数用完啦…</h3>
+                <p>就差一点点了！<br>再加 3 步试试？</p>
+                <div class="m-actions">
+                  <button class="btn btn-primary" onclick="revive()">📺 加 3 步复活（每关 1 次）</button>
+                  <button class="btn btn-mint btn-sm" onclick="doReset()">🔄 重开本关</button>
+                  <button class="btn btn-ghost btn-sm" onclick="alert('→ 向好友求助（每日最多 3 次）')">🥺 求助好友</button>
+                </div>
+                <div class="note" style="text-align:left;margin-top:12px">不羞辱、不指责 —— 直接给复活入口。</div>
               </div>
             </div>
           </div>
-          <p class="label">游戏内 · 可交互（点方向键试试）</p>
+          <p class="label">游戏内 · 可交互（按方向键玩；点"演示"看失败流）</p>
         </div>
       </div>
 
       <div>
         <div class="block">
-          <div class="sec-title"><span class="dot"></span>可交互演示说明</div>
-          <p class="sec-sub">点上方方向键或"重"按钮，棋盘会实时响应</p>
+          <div class="sec-title"><span class="dot"></span>v4.0 限步规则（可实际体验）</div>
+          <p class="sec-sub">对应 PRD FR-02/03 · 走几步 → 点"演示"触发失败 → 复活继续</p>
           <div class="note mint">
-            <b>① 棋盘元素</b><br>
+            <b>① 剩余步数最醒目</b><br>
+            HUD 主位不再是"当前步数"，而是<b>剩余步数 = 上限 − 已消耗</b>。剩余 ≤2 进入<b>告急态</b>：数字变红 + HUD 泛红描边 + 心跳闪烁（三信号同时出现，静音可感知）。
+          </div>
+          <div class="note mint">
+            <b>② 步数锁死：撤销不返还</b><br>
+            撤销可无限次回退棋盘（救棋局），但<b>已消耗的预算收不回来</b>。按钮旁常显"步数不返还"，每次撤销弹轻提示。
+          </div>
+          <div class="note mint">
+            <b>③ 失败 = 真实二值</b><br>
+            步数耗尽 → 棋盘冻结 → 失败弹窗（加 3 步复活 / 重开 / 求助）。<b>最后一步完成归位时判胜利</b>（胜利优先于失败）。
+          </div>
+          <div class="note">
+            <b>④ 步数上限怎么来</b><br>
+            <code>maxSteps = 最优步数 + 容错余量</code>（教学 +8~10 / 普通 +4~6 / 魔鬼 +1~2），由求解器派生，不拍脑袋。本演示关按教学档：最优 18 + 余量 10 = 28。
+          </div>
+          <div class="note">
+            <b>⑤ 棋盘元素</b><br>
             <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:linear-gradient(135deg,#D9C4AE,#C4A88D);color:#fff;font-size:11px">墙</span>
             <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:radial-gradient(circle,#FFE9A8,#FFD666);color:#8A6A1F;font-size:11px">✦ 星光台</span>
             <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:repeating-linear-gradient(45deg,#FFD9DF 0 6px,#CDE8FF 6px 12px);font-size:11px">彩虹传送带</span>
-            <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:linear-gradient(135deg,#E8D5FF,#CDE8FF);font-size:11px">滑梯</span>
-            <span style="display:inline-block;padding:2px 7px;border-radius:6px;background:radial-gradient(circle,#C8EFDD,#8FD9BC);font-size:11px">🍄 弹簧</span>
-          </div>
-          <div class="note mint">
-            <b>② 交互闭环</b><br>
-            滑动 → 角色移动 → 若前方有物件则推动 → 若物件落在传送带上则自动传送 → 到位后星光台亮起 → 全部归位即通关。
-          </div>
-          <div class="note">
-            <b>③ HUD 三项信息</b><br>
-            <b>当前步数</b>（实时）· <b>最少步数 18</b>（社交对比口径，用粉色突出）· <b>星光台进度</b>。<br>
-            最少步数始终可见，让玩家随时知道"我还能不能更好"。
           </div>
           <div class="note warn">
-            <b>④ 静音可玩</b><br>
-            本关卡的所有机关均为<b>视觉可见</b>（传送带流动动画、星光台光晕），不依赖音频。
+            <b>⑥ 已知边界（评审口径）</b><br>
+            死局检测为启发式（软提示"可能卡住了"，不触发失败）；告急三信号可被测试断言；失败文案不出现"失败"二字。
           </div>
         </div>
       </div>
@@ -871,15 +913,15 @@
             </div>
 
             <div class="game-area">
-              <div class="hud">
+              <div class="hud hud-low">
                 <div class="h-item">
-                  <div class="h-val" style="color:#D97A96">17</div>
-                  <div class="h-key">当前步数</div>
+                  <div class="h-val low">1</div>
+                  <div class="h-key">剩余步数</div>
                 </div>
                 <div class="h-div"></div>
                 <div class="h-item">
-                  <div class="h-val best">12</div>
-                  <div class="h-key">最少步数</div>
+                  <div class="h-val" style="color:var(--ink-soft)">13</div>
+                  <div class="h-key">步数上限</div>
                 </div>
                 <div class="h-div"></div>
                 <div class="h-item">
@@ -908,7 +950,7 @@
 
               <div style="text-align:center;margin-top:11px">
                 <div style="font-size:11.5px;color:#B04A63;font-weight:800;background:rgba(255,179,193,.22);border-radius:11px;padding:7px 12px;display:inline-block">
-                  🎃 小南瓜卡在角落了… 再想想？
+                  ⚡ 就差最后一步！小南瓜卡在角落了… 再想想？
                 </div>
               </div>
             </div>
@@ -922,7 +964,7 @@
                 </button>
               </div>
               <div class="pbar" style="margin-top:4px"><i style="width:64%"></i></div>
-              <div class="pad-hint">累计尝试 17 步 · 卡关 4 分 12 秒</div>
+              <div class="pad-hint">已消耗 12 步 · <b style="color:#E24B4A">剩余 1 步</b> · 卡关 4 分 12 秒</div>
             </div>
 
             <!-- 求助弹窗 -->
@@ -950,17 +992,18 @@
           <p class="sec-sub">对应产品文档 6.3 · 自检流程见流程图第 7 节</p>
 
           <div class="note warn">
-            <b>✅ 通过自检的 4 个要素</b><br>
+            <b>✅ 通过自检的 5 个要素（v4.0 强化）</b><br>
             ① <b>视觉上可解</b>：标准 6×6 棋盘，不吓人<br>
             ② <b>有接近感</b>：🎁 已归位（1/2），只剩 🎃 —— "就差一点"<br>
             ③ <b>有微小侥幸</b>：确实有解（12 步最优），但直觉路径必错<br>
-            ④ <b>失败不羞辱</b>：文案是"再想想？"而非"失败"
+            ④ <b>失败不羞辱</b>：文案是"再想想？"而非"失败"<br>
+            ⑤ <b>限步强化（v4.0）</b>：容错余量仅 <b>+1</b>（上限 13 步）——"就差一步"是<b>真实失败</b>，不再是结算页的对比数字
           </div>
 
           <div class="note mint">
             <b>痛点结构</b><br>
             90% 的玩家会先推 🎃（因为它看起来更近），推完之后 🎁 就永远推不出来了。<br>
-            <b>但游戏不会说"你错了"</b>——只显示"再想想"，并保留无限撤销。<br>
+            <b>但游戏不会说"你错了"</b>——只显示"再想想"，并保留无限撤销（步数不返还）。<br>
             玩家在 3-5 次尝试后才意识到"我一开始的思路就错了"——<b>这个瞬间就是分享欲望最强的时刻</b>。
           </div>
 
@@ -1084,121 +1127,146 @@
     </div>
   </div>
 
-  <!-- ==================== 6. 异步 PK ==================== -->
+  <!-- ==================== 6. 小镇每日赛 ==================== -->
   <div class="demo-group" id="g6">
     <div class="sec-head">
-      <h2>⑥ 异步 PK · 小镇挑战赛（三层社交 · 第三层）</h2>
-      <p><b>⚠️ 废弃"镜像版"设计</b> —— 改为<b>同关卡同配置，比最少步数</b>。公平性才是竞技的生命线。</p>
+      <h2>⑥ 小镇每日赛（三层社交 · 第三层 · v4.0 主链路）</h2>
+      <p>全服每天同一关 · 每人一次机会 · 比步数。<b>分享必然性由机制产生</b>——讨论与炫耀都围绕"今天的关"。</p>
     </div>
 
     <div class="grid-2">
       <div>
+        <!-- Phone A：每日赛首页（一次机会状态机） -->
         <div class="phone">
           <div class="screen">
             <div class="capsule"><span>•••</span>⊙</div>
             <div class="topbar">
               <button class="back">←</button>
-              <span class="t-title">小镇挑战赛</span>
-              <span class="t-chip">第 8 关</span>
+              <span class="t-title">小镇每日赛</span>
+              <span class="t-chip">今日第 38 期</span>
             </div>
 
             <div style="flex:1;overflow-y:auto;padding:4px 16px 16px">
-              <!-- 挑战中（隐藏对方成绩） -->
+              <!-- 今日关卡卡 -->
               <div class="block" style="padding:16px;margin-bottom:13px">
-                <div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:10px">⏳ 挑战进行中</div>
-                <div style="background:rgba(143,199,240,.18);border-radius:13px;padding:13px;font-size:11.5px;line-height:1.75;color:#2A6A96">
-                  <b>小兔叽</b> 向你发起了挑战！<br>
-                  关卡配置完全一致 —— 比谁的步数更少 🐾<br>
-                  <span style="opacity:.75">（对方成绩暂时保密，通关后揭晓）</span>
+                <div style="display:flex;align-items:center;gap:11px;margin-bottom:11px">
+                  <div class="rank-ava" style="background:linear-gradient(135deg,#CDE8FF,#8FC7F0)">🗓️</div>
+                  <div style="flex:1">
+                    <div style="font-size:13px;font-weight:800">10 月 10 日 · 今日关卡</div>
+                    <div style="font-size:10.5px;color:var(--ink-soft);margin-top:2px">全服同题 · 最优 12 步 · 宁易勿难</div>
+                  </div>
                 </div>
-                <button class="btn btn-mint" style="margin-top:12px" onclick="alert('→ 进入第 8 关（同配置复刻）\n不显示对方成绩，避免"反正赢不了"的放弃')">
-                  🎮 接受挑战
-                </button>
+                <div class="note mint" style="margin:0">
+                  <b>每人仅 1 次机会</b>：一步定胜负，不给重开。<br>
+                  步数耗尽可加 3 步复活（每日 1 次）——继续同一棋盘。
+                </div>
               </div>
 
-              <!-- 我在挑战中（隐藏对方成绩） -->
-              <div class="block" style="padding:16px;margin-bottom:13px">
-                <div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:10px">🎮 我正在挑战</div>
+              <!-- 状态：今日尚未挑战 -->
+              <div class="block" style="padding:18px;text-align:center;margin-bottom:13px;box-shadow:0 0 0 2px #FFD666,var(--shadow)">
+                <div style="font-size:30px;margin-bottom:6px">🏘️</div>
+                <div style="font-size:14px;font-weight:900;margin-bottom:5px">今日尚未挑战</div>
+                <div style="font-size:11px;color:var(--ink-soft);margin-bottom:13px">已有 <b>1,204</b> 位镇民完成了今天的关卡</div>
+                <button class="btn btn-primary" onclick="alert('→ 进入今日关卡\n（服务端写入 DailyAttempt；当日仅此一次机会）')">🎮 开始挑战</button>
+              </div>
+
+              <!-- 状态示意：挑战中 / 已提交 -->
+              <div class="block" style="padding:15px;margin-bottom:11px">
                 <div class="list-item" style="box-shadow:none;background:rgba(255,255,255,.75)">
-                  <span class="li-ico">🐰</span>
-                  <span class="li-body">小兔叽 的挑战
-                    <div class="li-sub">第 8 关 · 已提交 19 步 · 等待对方</div>
-                  </span>
-                  <span class="tag mint">待揭晓</span>
+                  <span class="li-ico">⏳</span>
+                  <span class="li-body">挑战中（可续玩）<div class="li-sub">中途退出保留进度 · 不消耗新机会</div></span>
+                  <span class="tag sky">进行中</span>
                 </div>
-              </div>
-
-              <!-- 结果揭晓 -->
-              <div class="block" style="padding:16px">
-                <div style="font-size:12px;font-weight:800;color:var(--ink-soft);margin-bottom:8px">🏁 挑战结果揭晓</div>
-                <div class="vs-row">
-                  <div class="vs-card me win">
-                    <div class="vs-name">我 😺</div>
-                    <div class="vs-num">19</div>
-                    <div class="vs-unit">步</div>
-                  </div>
-                  <div class="vs-mid">VS</div>
-                  <div class="vs-card lose">
-                    <div class="vs-name">小兔叽 🐰</div>
-                    <div class="vs-num">23</div>
-                    <div class="vs-unit">步</div>
-                  </div>
-                </div>
-                <div style="text-align:center;font-size:13.5px;font-weight:900;color:#4CAF7D;margin-bottom:13px">
-                  🏆 你赢了！比 TA 少用 4 步
-                </div>
-                <div class="m-actions" style="display:flex;flex-direction:column;gap:8px">
-                  <button class="btn btn-pink btn-sm" onclick="alert('→ 生成可爱海报分享到朋友圈\n"我比小兔叽少用 4 步 🏆"')">📸 生成炫耀海报</button>
-                  <button class="btn btn-ghost btn-sm" onclick="alert('→ 再接再厉，发起新挑战')">🔄 再挑战一局</button>
-                </div>
-              </div>
-
-              <!-- 就差一点 -->
-              <div class="block" style="padding:16px;margin-top:13px;box-shadow:0 0 0 2px #FFD666,var(--shadow)">
-                <div style="text-align:center">
-                  <div style="font-size:31px;margin-bottom:5px">😤</div>
-                  <div style="font-size:14px;font-weight:900;color:#B8860B;margin-bottom:5px">就差 2 步！</div>
-                  <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:12px">
-                    你 21 步 · 小兔叽 19 步<br>
-                    差距 ≤2 步时高亮，直接触发再挑战
-                  </div>
-                  <button class="btn btn-primary btn-sm" style="width:100%" onclick="alert('→ 发起反向挑战（接龙）\n传播链不中断')">🔄 我要翻盘</button>
+                <div class="list-item" style="box-shadow:none;background:rgba(255,255,255,.75);margin-top:8px">
+                  <span class="li-ico">✅</span>
+                  <span class="li-body">已提交 · 5 步<div class="li-sub">错过后明早 00:00 换新关</div></span>
+                  <span class="tag mint">已挑战</span>
                 </div>
               </div>
             </div>
           </div>
-          <p class="label">挑战赛 · 三态（进行中/揭晓/就差一点）</p>
+          <p class="label">每日赛首页 · 一次机会状态机</p>
+        </div>
+
+        <!-- Phone B：结果页 + 海报 -->
+        <div class="phone" style="margin-top:26px">
+          <div class="screen">
+            <div class="capsule"><span>•••</span>⊙</div>
+            <div class="topbar">
+              <button class="back">←</button>
+              <span class="t-title">今日成绩</span>
+              <span class="t-chip">10 月 10 日</span>
+            </div>
+
+            <div style="flex:1;overflow-y:auto;padding:4px 16px 16px">
+              <div class="block" style="padding:20px;text-align:center;margin-bottom:13px">
+                <div style="font-size:36px;margin-bottom:6px">🎉</div>
+                <div style="font-size:17px;font-weight:900;margin-bottom:5px">用了 5 步</div>
+                <div style="font-size:12px;color:var(--ink-soft);margin-bottom:13px">击败了 <b style="color:#D97A96;font-size:15px">87%</b> 的镇民</div>
+                <div class="btn-row">
+                  <button class="btn btn-pink btn-sm" onclick="alert('→ 生成结果海报（保存相册 / 转发）\n分享不加奖励：动机来自结果本身')">📸 生成海报</button>
+                  <button class="btn btn-mint btn-sm" onclick="alert('→ 转发给好友\n（每日主动分享行为 ≤3 次）')">💌 转发</button>
+                </div>
+              </div>
+
+              <!-- 海报预览 -->
+              <div class="block" style="padding:13px">
+                <div style="font-size:11px;font-weight:800;color:var(--ink-soft);margin-bottom:9px">结果海报预览</div>
+                <div style="background:linear-gradient(160deg,#EAF6FF,#FFF6EA 55%,#FFEFF3);border-radius:15px;padding:17px 15px;text-align:center;box-shadow:var(--shadow)">
+                  <div style="font-size:25px;margin-bottom:5px">🦊</div>
+                  <div style="font-size:13.5px;font-weight:900;margin-bottom:3px">小镇每日赛 · 10 月 10 日</div>
+                  <div style="font-size:11.5px;color:var(--ink-soft);line-height:1.7;margin-bottom:9px">
+                    我用了 <b style="color:#D97A96">5 步</b> · 击败 87% 的镇民<br>
+                    <span style="font-size:10px">—— 你也来试试今天的关？</span>
+                  </div>
+                  <div style="display:flex;align-items:center;justify-content:center;gap:7px">
+                    <div style="width:44px;height:44px;border-radius:9px;background:#fff;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:center;font-size:19px">🌀</div>
+                    <div style="font-size:9.5px;color:var(--brown-light);text-align:left">小程序码位<br>扫码玩今日关</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="note" style="margin-top:11px">
+                <b>样本不足提示（已写死口径）</b><br>
+                当日完成 &lt; 20 人时，降级展示"今日已有 N 位镇民完成"，不回切百分比。
+              </div>
+            </div>
+          </div>
+          <p class="label">结果页 + 海报预览 · "击败 X%"</p>
         </div>
       </div>
 
       <div>
         <div class="block">
-          <div class="sec-title"><span class="dot"></span>为什么废弃"镜像版"</div>
-          <p class="sec-sub">⚠️ v3.0 关键修正项（产品文档 6.5）</p>
+          <div class="sec-title"><span class="dot"></span>为什么是"全服同题"（v4.0 关键决策）</div>
+          <p class="sec-sub">对应 PRD FR-10/11 · 替代 v3.0 的 1v1 挑战链接</p>
           <div class="note warn">
-            <b>❌ v2.0 原设计：</b>"进入同一关卡的镜像版本（布局相同但机关配置随机变化）"<br><br>
-            <b>问题 1 · 不可比：</b>机关配置变了，步数就没有可比性 → PK 失去意义<br>
-            <b>问题 2 · 不公平：</b>随机配置会导致一方明显更难 → 玩家觉得不公平<br><br>
-            <b>✅ v3.0 正确做法：</b>同关卡、同配置、比最少步数 + 用时
+            <b>❌ 1v1 挑战链接的问题</b><br>
+            每次挑战是一套点对点流程，传两手就断链；需要玩家主动发起，<b>分享不是必然的</b>；链路转发后防作弊复杂。
+          </div>
+          <div class="note mint">
+            <b>✅ 全服同题 + 每人一次机会</b><br>
+            ① <b>成绩天然可比</b>："今天的关"成为公共话题<br>
+            ② <b>稀缺即公平</b>：大家都只有一次，服务端强校验<br>
+            ③ <b>内容成本趋零</b>：每天只产 1 关（预生成管线）<br>
+            ④ <b>只显示击败百分比</b>：弱者不被碾压、强者有炫耀感
           </div>
 
           <hr class="sep">
 
-          <div class="sec-title"><span class="dot"></span>4 个关键设计点</div>
+          <div class="sec-title"><span class="dot"></span>四个 UI 细节</div>
           <div class="list" style="margin-top:10px">
-            <div class="list-item"><span class="li-ico">🔒</span><span class="li-body"><b>隐藏对方成绩</b><div class="li-sub">挑战中不显示，避免"反正赢不了"的放弃</div></span></div>
-            <div class="list-item"><span class="li-ico">💥</span><span class="li-body"><b>"差一点"高亮（差 ≤2 步）</b><div class="li-sub">直接触发再挑战，这是最有效的留存钩子</div></span></div>
-            <div class="list-item"><span class="li-ico">🔄</span><span class="li-body"><b>失败可反向挑战</b><div class="li-sub">输的人有翻盘机会 → 传播链不中断</div></span></div>
-            <div class="list-item"><span class="li-ico">🔗</span><span class="li-body"><b>接龙机制</b><div class="li-sub">一个链接传多手 → 指数级传播</div></span></div>
+            <div class="list-item"><span class="li-ico">①</span><span class="li-body"><b>一次机会，不支持重开</b><div class="li-sub">服务端 DailyAttempt 唯一约束强制</div></span></div>
+            <div class="list-item"><span class="li-ico">②</span><span class="li-body"><b>加步复活仅 1 次/日</b><div class="li-sub">广告点天然且克制，不破坏竞技感</div></span></div>
+            <div class="list-item"><span class="li-ico">③</span><span class="li-body"><b>成绩快照固定</b><div class="li-sub">提交即定格"击败 X%"，复看不回切</div></span></div>
+            <div class="list-item"><span class="li-ico">④</span><span class="li-body"><b>分享不加奖励</b><div class="li-sub">海报动机来自炫耀 / 哭惨本身</div></span></div>
           </div>
 
           <hr class="sep">
 
-          <div class="sec-title"><span class="dot"></span>记分口径（关键细节）</div>
-          <div class="note mint" style="margin-top:10px">
-            <b>只算"历史最少步数"，不算总步数</b><br><br>
-            ❌ 错误：算玩家实际走了多少步 → 谨慎的玩家永远输给莽撞的玩家<br>
-            ✅ 正确：算这一关的历史最少步数（允许反复重试取最优）→ 比的是"能不能找到更优解"，<b>这才有技巧深度</b>
+          <div class="sec-title"><span class="dot"></span>与旧模块的关系</div>
+          <div class="note" style="margin-top:10px">
+            <b>1v1 挑战链接（v1.1 扩展）</b>：保留"同配置复刻 + 差距 ≤2 触发再挑战"设计，上线后按数据追加，<b>不再是主链路</b>。
           </div>
         </div>
       </div>
@@ -1208,8 +1276,8 @@
   <!-- ==================== 7. 排行榜 ==================== -->
   <div class="demo-group" id="g7">
     <div class="sec-head">
-      <h2>⑦ 好友排行榜</h2>
-      <p>微信开放数据域实现。<b>"差一点"提示</b>是核心留存钩子。不做总榜（对普通玩家无意义）。</p>
+      <h2>⑦ 好友排行榜（v1.1 扩展）</h2>
+      <p>微信开放数据域实现。<b>v4.0 变更：每日赛"击败 X%"已承担对比功能，好友榜降为 v1.1。</b>不做总榜。</p>
     </div>
 
     <div class="grid-2">
@@ -1296,10 +1364,11 @@
           </div>
 
           <div class="note mint">
-            <b>② 只做两个榜</b><br>
+            <b>② 只做两个榜（v1.1）</b><br>
             <b>最少步数榜</b>（本页）：刺激"我要比他少 1 步"<br>
             <b>章节进度榜</b>：制造"他比我快"的焦虑<br>
-            <b>不做总榜</b> —— 对普通玩家无意义，只有头部有意思。
+            <b>不做总榜</b> —— 对普通玩家无意义，只有头部有意思。<br>
+            ⚠️ <b>v4.0 起</b>：每日赛自带"击败 X%"，无需好友数据即可感知水平坐标——本页整体<b>降为 v1.1 扩展</b>。
           </div>
 
           <div class="note">
@@ -1321,7 +1390,7 @@
   <div class="demo-group" id="g8">
     <div class="sec-head">
       <h2>⑧ 变现触发点（纯 IAA）</h2>
-      <p>个人主体<b>不能开内购</b>，只能广告变现。5 个触发点，全部走激励视频。<b>不设 Banner / 插屏</b>。</p>
+      <p>个人主体<b>不能开内购</b>，只能广告变现。v4.0 核心广告点是<b>"步数耗尽加步复活"——玩家自己想要的广告</b>。<b>不设 Banner / 插屏</b>。</p>
     </div>
 
     <div class="grid-2">
@@ -1340,11 +1409,11 @@
               <div class="block" style="padding:20px;text-align:center;margin-bottom:13px">
                 <div style="font-size:39px;margin-bottom:7px">🎉</div>
                 <div style="font-size:17px;font-weight:900;margin-bottom:5px">通关！</div>
-                <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:13px">你用了 <b style="color:#D97A96;font-size:14px">19</b> 步 · 比 92% 的镇民都聪明</div>
+                <div style="font-size:11.5px;color:var(--ink-soft);margin-bottom:13px">用了 <b style="color:#D97A96;font-size:14px">19</b> 步 · 上限 26 步 · 重试 3 次</div>
                 <div style="display:flex;justify-content:center;gap:5px;font-size:21px;margin-bottom:15px">⭐⭐⭐</div>
                 <div class="btn-row" style="margin-bottom:8px">
                   <button class="btn btn-pink btn-sm" onclick="alert('→ 生成可爱海报分享到朋友圈\n获得 1 次免费提示')">📸 分享成绩</button>
-                  <button class="btn btn-mint btn-sm" onclick="alert('→ 进入「小镇挑战赛」\n把这一关分享给好友比拼')">🎮 发起挑战</button>
+                  <button class="btn btn-mint btn-sm" onclick="alert('→ 前往「小镇每日赛」\n全服同题，比谁步数少')">🏘️ 去玩每日赛</button>
                 </div>
               </div>
 
@@ -1391,10 +1460,11 @@
 
       <div>
         <div class="block">
-          <div class="sec-title"><span class="dot"></span>5 个触发点</div>
-          <p class="sec-sub">对应产品文档 7.2</p>
+          <div class="sec-title"><span class="dot"></span>6 个触发场景（v4.0）</div>
+          <p class="sec-sub">对应产品文档 7.2 / PRD FR-16</p>
           <div class="list" style="margin-top:10px">
-            <div class="list-item"><span class="li-ico">💀</span><span class="li-body">关卡失败后复活<div class="li-sub">每关最多 1 次</div></span></div>
+            <div class="list-item" style="box-shadow:0 0 0 2px #FFD666,var(--shadow)"><span class="li-ico">💀</span><span class="li-body"><b>步数耗尽加步复活（+3 步）</b><div class="li-sub">v4.0 最核心：失败成为常态，"差 1 步"时玩家主动想看</div></span></div>
+            <div class="list-item"><span class="li-ico">🏘️</span><span class="li-body">每日赛加步复活<div class="li-sub">每日 1 次（一次机会制下唯一续命入口）</div></span></div>
             <div class="list-item"><span class="li-ico">💡</span><span class="li-body">获取提示<div class="li-sub">每关最多 2 次（前 3 次免费）</div></span></div>
             <div class="list-item"><span class="li-ico">🗝️</span><span class="li-body">解锁隐藏关卡<div class="li-sub">每章 1 次</div></span></div>
             <div class="list-item"><span class="li-ico">🎁</span><span class="li-body">领取每日奖励<div class="li-sub">每日 1 次</div></span></div>
@@ -1405,10 +1475,13 @@
 
           <div class="sec-title"><span class="dot"></span>技术要点（必须）</div>
           <div class="note warn" style="margin-top:10px">
-            <b>三个事件必须监听</b><br>
-            <b>onLoad</b> → 记录"广告可用"，UI 才显示"看广告"按钮<br>
-            <b>onError</b> → <b>降级为"分享求助"</b>，不能卡死流程<br>
-            <b>onClose</b> → <b>必须检查 <code>isEnded</code></b>，用户跳过广告<b>不发放奖励</b>，否则损失收入
+            <b>三个事件必须监听（PRD v1.2 评审口径）</b><br>
+            <b>onLoad</b> → 记录"广告可用"，UI 才显示"看广告"按钮；<b>3s 静默失败</b>视为不可用<br>
+            <b>onError</b> → 按阶段降级（MVP-2「稍后再试」/ v1.0 起「分享求助」），不能卡死流程<br>
+            <b>onClose</b> → <b>必须检查 <code>isEnded</code></b>，用户跳过广告<b>不发放奖励</b>
+          </div>
+          <div class="note" style="margin-top:10px">
+            <b>⚠️ 流量主前提</b>：广告实际生效需累计 UV ≥ 1000 开通流量主——验证期"代码就绪、生效以开通为前提"，完播率基线为<b>条件性基线</b>。
           </div>
 
           <hr class="sep">
@@ -1482,6 +1555,25 @@
     </div>
 
     <div class="block">
+      <div class="sec-title"><span class="dot"></span>步数 UI 规范（v4.0 新增）</div>
+      <p class="sec-sub">限步通关的"可感知"全部靠 UI 承担（对应 PRD FR-03 G3 三信号）</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px;margin-top:14px">
+        <div class="note mint" style="margin:0">
+          <b>剩余步数常驻主位</b> 🔢<br>HUD 第一格 = 上限 − 已消耗，"还剩几步"永远是最高优先级信息
+        </div>
+        <div class="note warn" style="margin:0">
+          <b>告急态三信号</b> 🚨<br>剩余 ≤2：① 数字变红 ② HUD 泛红描边 ③ 心跳闪烁——同时出现，静音可感知
+        </div>
+        <div class="note mint" style="margin:0">
+          <b>撤销不返还提示</b> ↩<br>按钮旁常显"步数不返还"；每次撤销弹轻提示（toast）
+        </div>
+        <div class="note mint" style="margin:0">
+          <b>失败不羞辱</b> 🌙<br>"步数用完啦…再加 3 步试试？"——直接给复活入口，不出现"失败"二字
+        </div>
+      </div>
+    </div>
+
+    <div class="block">
       <div class="sec-title"><span class="dot"></span>圆角与阴影</div>
       <p class="sec-sub">圆润是"治愈系"的核心视觉语言。全部元素采用大圆角，避免任何锐角。</p>
       <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:14px">
@@ -1529,6 +1621,12 @@
         <div class="note warn" style="margin:0">
           <b>卡关</b> 🙁<br>非羞辱文案"再想想？"+ 提示可撤销
         </div>
+        <div class="note warn" style="margin:0">
+          <b>步数告急（v4.0）</b> 🚨<br>剩余 ≤2：变红 + 泛红描边 + 心跳闪烁
+        </div>
+        <div class="note warn" style="margin:0">
+          <b>步数耗尽（v4.0）</b> 🌙<br>柔和失败动画 + "再加 3 步试试？"复活入口
+        </div>
       </div>
     </div>
 
@@ -1559,7 +1657,7 @@
 
     <div class="block">
       <div class="sec-title"><span class="dot"></span>本交互稿与产品文档的对应关系</div>
-      <p class="sec-sub">所有设计均可追溯到产品文档 v3.0 的具体章节。</p>
+      <p class="sec-sub">所有设计均可追溯到产品文档 v4.0 与 PRD v1.2 的具体条款。</p>
       <div style="overflow-x:auto;margin-top:12px">
         <table style="width:100%;border-collapse:collapse;font-size:11.5px;min-width:520px">
           <thead>
@@ -1572,10 +1670,10 @@
           <tbody>
             <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">① 主菜单</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">1.1 / 3.5</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">3 秒建立情绪；主按钮唯一</td></tr>
             <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">② 选关地图</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">3.3 / 6.3</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">魔鬼关卡前置造势；星级＝步数</td></tr>
-            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">③ 游戏内</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">3.1 / 3.4</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">滑动操作；HUD 显示最少步数</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">③ 游戏内（限步）</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">3.1 / FR-02/03</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">剩余步数 HUD；步数锁死；失败与复活三出路</td></tr>
             <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">④ 魔鬼关卡</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.3 / 6.8</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">看似能过；不羞辱；防口碑雷</td></tr>
             <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑤ 求助机制</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.4</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">加油/传地址；防骚扰三约束</td></tr>
-            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑥ 异步 PK</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.5</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">废弃镜像版；隐藏对方成绩</td></tr>
+            <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑥ 小镇每日赛</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">FR-10/11/12</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">全服同题；一次机会；击败 X%；结果海报</td></tr>
             <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑦ 排行榜</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">6.5 / 6.6</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">"差一点"高亮；不做总榜</td></tr>
             <tr><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">⑧ 变现触发点</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">7.2 / 7.4</td><td style="padding:9px 11px;border-bottom:1px solid rgba(122,92,74,.08)">5 个触发点；收入预期修正</td></tr>
             <tr><td style="padding:9px 11px">⑨ 设计规范</td><td style="padding:9px 11px">4.1 / 3.4</td><td style="padding:9px 11px">色彩/圆角/反馈/文案基调</td></tr>
@@ -1623,6 +1721,7 @@ const LEVEL_12 = {
   targets: [{x:3,y:1},{x:4,y:3}],
   conveyors: [{x:2,y:2},{x:3,y:2}],
   optimalSteps: 18,
+  maxSteps: 28,          // v4.0：步数上限 = 最优步数 + 容错余量（本演示按教学档 18+10）
 };
 
 // 运行时状态副本
@@ -1633,7 +1732,10 @@ function initLevel() {
     boxes: LEVEL_12.boxes.map(b => ({...b})),
     player: {...LEVEL_12.player},
     steps: 0,
+    budget: LEVEL_12.maxSteps,   // v4.0：剩余步数 = budget - steps
     history: [],
+    won: false,
+    failed: false,
   };
   renderBoard();
 }
@@ -1675,15 +1777,16 @@ const DIRS = {
   right: {dx: 1, dy:  0},
 };
 
-/** 执行移动（简化版推箱子 + 传送带） */
+/** 执行移动（v4.0：限步通关 + 步数锁死） */
 function doMove(dir) {
+  if (st.won || st.failed) return; // 已胜利 / 已失败 → 冻结
   const d = DIRS[dir];
   if (!d) return;
 
   const nx = st.player.x + d.dx;
   const ny = st.player.y + d.dy;
 
-  // 撞墙 → 拒绝
+  // 撞墙 → 拒绝（不扣步数）
   if (isWall(nx, ny)) { shake(); return; }
 
   const box = boxAt(nx, ny);
@@ -1692,7 +1795,7 @@ function doMove(dir) {
     const bx = nx + d.dx;
     const by = ny + d.dy;
 
-    // 物件目标格被墙或其他物件占据 → 推不动
+    // 物件目标格被墙或其他物件占据 → 推不动（不扣步数）
     if (isWall(bx, by) || boxAt(bx, by)) {
       shake();
       return;
@@ -1722,31 +1825,81 @@ function doMove(dir) {
   // 移动玩家
   st.player.x = nx;
   st.player.y = ny;
-  st.steps += 1;
+  st.steps += 1; // v4.0：每次有效移动消耗 1 步（撤销不返还）
 
   renderBoard();
 
-  // 胜利判定
+  // 结算判定（v4.0 顺序敏感：胜利优先 → 步数耗尽）
   const won = LEVEL_12.targets.every(t => st.boxes.some(b => b.x === t.x && b.y === t.y));
   if (won) {
-    setTimeout(() => alert('🎉 通关！\n你用了 ' + st.steps + ' 步（最少步数 ' + LEVEL_12.optimalSteps + '）'), 260);
+    st.won = true;
+    setTimeout(() => alert('🎉 通关！\n用了 ' + st.steps + ' 步 · 上限 ' + st.budget + ' 步'), 260);
+  } else if (st.steps >= st.budget) {
+    st.failed = true;
+    renderBoard();
+    setTimeout(() => { document.getElementById('failMask').style.display = 'flex'; }, 260);
   }
 }
 
+/** 撤销：回退棋盘，但步数不返还（v4.0 步数锁死） */
 function undo() {
-  if (!st.history.length) return;
+  if (!st.history.length || st.won || st.failed) return;
+  const curSteps = st.steps;          // 当前已消耗步数（保持不变）
   const prev = st.history.pop();
   st = {
     boxes: prev.boxes,
     player: prev.player,
-    steps: Math.max(0, prev.steps - 1),
+    steps: curSteps,                  // ⚠️ 不返还
+    budget: st.budget,
     history: prev.history,
+    won: false,
+    failed: false,
   };
   renderBoard();
+  toast('↩ 棋盘已回退 · 步数不返还');
 }
 
 function doReset() {
+  const m = document.getElementById('failMask');
+  if (m) m.style.display = 'none';
   initLevel();
+}
+
+/** v4.0 复活：+3 步继续（真实链路为看完激励视频后发放，需校验 isEnded） */
+function revive() {
+  if (!st.failed) return;
+  st.failed = false;
+  st.budget += 3;
+  document.getElementById('failMask').style.display = 'none';
+  renderBoard();
+  toast('📺 复活成功 · 步数上限 +3');
+}
+
+/** 演示用：直接触发"步数耗尽" */
+function demoFail() {
+  if (!st || st.won) return;
+  st.steps = st.budget;
+  st.failed = true;
+  renderBoard();
+  document.getElementById('failMask').style.display = 'flex';
+}
+
+/** 轻提示（撤销不返还 / 复活等） */
+let toastTimer = null;
+function toast(msg) {
+  const screen = document.querySelector('#g3 .screen');
+  if (!screen) return;
+  let t = document.getElementById('undoToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'undoToast';
+    t.className = 'toast';
+    screen.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.style.display = 'none'; }, 1400);
 }
 
 function doHint() {
@@ -1796,8 +1949,21 @@ function renderBoard() {
   }
   board.innerHTML = html;
 
-  const sv = document.getElementById('stepVal');
-  if (sv) sv.textContent = st.steps;
+  // v4.0 HUD：剩余步数（告急态三信号：数字变红 + HUD 泛红描边 + 心跳闪烁）
+  const left = Math.max(0, st.budget - st.steps);
+  const lv = document.getElementById('leftVal');
+  if (lv) {
+    lv.textContent = left;
+    const lowNow = left <= 2 && !st.won;
+    lv.classList.toggle('low', lowNow);
+    const hud = lv.closest('.hud');
+    if (hud) hud.classList.toggle('hud-low', lowNow);
+  }
+
+  // 星光台进度
+  const done = LEVEL_12.targets.filter(t => st.boxes.some(b => b.x === t.x && b.y === t.y)).length;
+  const pv = document.getElementById('placeVal');
+  if (pv) pv.textContent = done + '/' + LEVEL_12.targets.length;
 }
 
 /* 键盘支持（方便桌面测试） */
