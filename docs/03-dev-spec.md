@@ -1,8 +1,9 @@
 # 《云朵小镇·推推奇遇》开发文档
 
-> 配套产品文档：`docs/01-product-spec.md` v3.0
+> 配套产品文档：`docs/01-product-spec.md` v4.0
 > 配套流程图：`docs/02-flowcharts.md`
-> 文档版本：v1.0 | 编写日期：2026 年 10 月
+> 文档版本：v2.0 | 编写日期：2026 年 10 月
+> v2.0 变更：引擎层引入**限步通关与步数锁死**（撤销不返还步数）、新增**小镇每日赛**后端设计（替代 1v1 挑战为主链路）、新增每日赛关卡预生成管线
 
 ---
 
@@ -16,7 +17,7 @@
 | 微信适配 | `minigame-adapter` | 微信官方 | 不要自己从零写适配层（DOM/Canvas/音频/存储 差异极多） |
 | 单元测试 | Vitest | ^1.0 | 与 Vite 同源，零配置；**引擎层必须有单测** |
 | 状态管理 | 纯函数模块（自研） | — | 逻辑与渲染解耦，便于撤销/回放/单测 |
-| 后端 | 微信云开发（云函数 + 云数据库） | — | 挑战赛数据量小，云开发免运维、免备案复杂度 |
+| 后端 | 微信云开发（云函数 + 云数据库） | — | 每日赛数据量小，云开发免运维、成本为零 |
 
 ### 1.1 为什么不用 Cocos Creator
 
@@ -172,6 +173,12 @@ export interface LevelConfig {
   meta: {
     /** 最优步数（关卡生成时算出） */
     optimalSteps: number;
+    /**
+     * 步数预算（v4.0 新增 · 限步通关）
+     * 派生规则：maxSteps = optimalSteps + 容错余量
+     * 教学关 +8~10 / 普通关 +4~6 / 魔鬼关 +1~2
+     */
+    maxSteps: number;
     /** 是否为魔鬼关卡 */
     isDevil: boolean;
     /** 关卡名 */
@@ -192,12 +199,26 @@ export interface GameState {
   puppetPositions: Record<string, Position>;
   /** 物件位置（按 id 索引） */
   boxes: Record<string, Box>;
-  /** 已走步数 */
+  /**
+   * 已消耗步数（v4.0：只增不减）
+   * 每次有效移动 +1；撤销不回退；复活后继续累加
+   */
   steps: number;
-  /** 历史状态栈（用于撤销，序列化后存储） */
+  /**
+   * 本关步数预算（v4.0 新增）
+   * 初始 = config.meta.maxSteps；看广告复活后增加（如 +3）
+   */
+  stepBudget: number;
+  /**
+   * 棋盘快照栈（撤销用）
+   * ⚠️ v4.0：只存棋盘快照（serializeBoard），不含 steps / stepBudget
+   * 撤销 = 回退棋盘 + 步数保持不变
+   */
   history: string[];
-  /** 是否已胜利 */
+  /** 是否已胜利（在 stepBudget 内完成） */
   won: boolean;
+  /** 是否已失败（steps >= stepBudget 且未完成，v4.0 新增） */
+  failed: boolean;
 }
 
 /** 引擎事件（渲染层据此播动画） */
@@ -210,8 +231,11 @@ export type GameEvent =
   | { type: 'slope_slided'; boxId: string; from: Position; to: Position }
   | { type: 'spring_bounced'; boxId: string; from: Position; to: Position }
   | { type: 'actor_switched'; from: string; to: string }
+  | { type: 'undo_performed'; steps: number }        // v4.0：撤销动画（步数不变）
+  | { type: 'steps_exhausted'; steps: number }       // v4.0：步数耗尽
   | { type: 'deadlock_detected' }
-  | { type: 'level_won'; steps: number };
+  | { type: 'level_won'; steps: number }
+  | { type: 'level_failed'; steps: number };         // v4.0：关卡失败
 
 /** move() 的返回值 */
 export interface MoveResult {
@@ -228,12 +252,13 @@ export interface MoveResult {
 /**
  * 创建初始游戏状态
  * @param config 关卡配置
- * @returns 初始化后的不可变状态
+ * @returns 初始化后的不可变状态（stepBudget = config.meta.maxSteps）
  */
 export function createState(config: LevelConfig): GameState;
 
 /**
  * 执行一次移动（纯函数，不修改入参）
+ * v4.0：每次有效移动消耗 1 步；步数耗尽且未完成 → failed = true
  * @param state 当前状态
  * @param config 关卡配置（机关参数需要）
  * @param direction 移动方向
@@ -269,20 +294,44 @@ export function getHint(
 ): { direction: Direction; actorId: string } | null;
 
 /**
- * 序列化状态（用于撤销栈 / 挑战赛传输）
+ * 序列化完整状态（用于存档 / 每日赛成绩校验）
  */
 export function serialize(state: GameState): string;
 
-/** 反序列化 */
+/** 反序列化完整状态 */
 export function deserialize(raw: string): GameState;
 
 /**
- * 撤销一步
+ * 序列化棋盘快照（撤销栈专用，v4.0）
+ * ⚠️ 只包含棋盘数据（角色 / 物件位置），不包含 steps / stepBudget
+ * 原因：撤销不返还步数，步数不属于可回退的数据
+ */
+export function serializeBoard(state: GameState): string;
+
+/** 反序列化棋盘快照（在 current 基础上恢复棋盘） */
+export function deserializeBoard(raw: string, current: GameState): GameState;
+
+/**
+ * 撤销一步（v4.0：回退棋盘，但不返还步数）
+ * @returns 恢复棋盘后的状态；steps / stepBudget 保持不变
  */
 export function undo(
   state: GameState,
   config: LevelConfig
 ): MoveResult;
+
+/**
+ * 剩余步数 = stepBudget - steps（UI 常驻显示）
+ */
+export function getRemainingSteps(state: GameState): number;
+
+/**
+ * 复活：步数耗尽后看广告加步（v4.0）
+ * @param extraSteps 增加的步数（如 3）
+ * @returns failed = false、stepBudget + extraSteps 的新状态；
+ *          未处于失败态时原样返回
+ */
+export function revive(state: GameState, extraSteps: number): GameState;
 
 /**
  * 死局检测：判断当前局面是否已无解
@@ -297,6 +346,7 @@ export function detectDeadlock(
 /**
  * 计算某关卡的最优步数（关卡生成 / 验收时使用，不在运行时调用）
  * BFS 全状态空间搜索，有状态数上限保护
+ * 同时用于派生 maxSteps = optimalSteps + 容错余量
  */
 export function computeOptimalSteps(config: LevelConfig): number;
 ```
@@ -305,8 +355,8 @@ export function computeOptimalSteps(config: LevelConfig): number;
 
 ```typescript
 export function move(state: GameState, config: LevelConfig, dir: Direction): MoveResult {
-  // ① 已胜利则拒绝
-  if (state.won) return { state, events: [], rejected: true };
+  // ① 已胜利或已失败则拒绝（v4.0：失败后需 revive() 才能继续）
+  if (state.won || state.failed) return { state, events: [], rejected: true };
 
   // ② 计算目标格
   const from = getActorPosition(state);
@@ -348,19 +398,66 @@ export function move(state: GameState, config: LevelConfig, dir: Direction): Mov
   resolveSprings(next, config, events);     // 弹簧
   resolveTargets(next, config, events);     // 目标点状态变化
 
-  // ⑩ 计步 + 压入历史
+  // ⑩ 计步 + 压入棋盘快照（v4.0）
+  // ⚠️ steps 只增不减；history 只存棋盘快照（serializeBoard），不含步数
   next.steps += 1;
-  next.history.push(serialize(state));
+  next.history.push(serializeBoard(state));
 
-  // ⑪ 胜利判定
+  // ⑪ 结算判定：胜利优先 → 步数耗尽 → 死局（v4.0 顺序敏感）
+  // ⚠️ 最后一步完成时必须判胜利，不能判失败
   if (checkWin(next, config)) {
     next.won = true;
     events.push({ type: 'level_won', steps: next.steps });
+  } else if (next.steps >= next.stepBudget) {
+    next.failed = true;
+    events.push({ type: 'steps_exhausted', steps: next.steps });
+    events.push({ type: 'level_failed', steps: next.steps });
   } else if (detectDeadlock(next, config)) {
     events.push({ type: 'deadlock_detected' });
   }
 
   return { state: next, events, rejected: false };
+}
+```
+
+**撤销与复活（v4.0 步数锁死）**：
+
+```typescript
+export function undo(state: GameState, config: LevelConfig): MoveResult {
+  if (state.won || state.failed) return { state, events: [], rejected: true };
+  if (state.history.length === 0) return { state, events: [], rejected: true };
+
+  // ① 取出最近的棋盘快照
+  const snapshot = state.history[state.history.length - 1];
+
+  // ② 恢复棋盘（⚠️ steps / stepBudget 保持不变——步数锁死）
+  const restored = deserializeBoard(snapshot, state);
+
+  // ③ 快照出栈
+  const next: GameState = {
+    ...restored,
+    steps: state.steps,             // 不返还
+    stepBudget: state.stepBudget,   // 不变
+    history: state.history.slice(0, -1),
+  };
+
+  return {
+    state: next,
+    events: [{ type: 'undo_performed', steps: next.steps }],
+    rejected: false,
+  };
+}
+
+export function revive(state: GameState, extraSteps: number): GameState {
+  // 未处于失败态：原样返回
+  if (!state.failed) return state;
+
+  // 失败 → 解除失败态，预算 +extraSteps（棋盘不动，继续挑战）
+  return {
+    ...state,
+    failed: false,
+    stepBudget: state.stepBudget + extraSteps,
+  };
 }
 ```
 
@@ -374,7 +471,7 @@ export function move(state: GameState, config: LevelConfig, dir: Direction): Mov
 
 - 生产环境用 **structuredClone**（现代内核支持）或 **手写深拷贝**（更快，需单测覆盖）
 - **不要用 `JSON.parse(JSON.stringify())`** 做热路径拷贝（性能差）
-- `history` 只存 `serialize()` 后的字符串，不存完整对象（省内存）
+- `history` 只存 `serializeBoard()` 的棋盘快照字符串，不含 `steps` / `stepBudget`——v4.0 步数不属于可回退数据，同时省内存
 
 ---
 
@@ -441,6 +538,8 @@ export function move(state: GameState, config: LevelConfig, dir: Direction): Mov
 
 - [ ] `computeOptimalSteps()` 有结果（即**有解**）
 - [ ] 最优步数在目标区间（教学关 ≤10 步，普通关 10-25 步，挑战关 25-40 步）
+- [ ] **`maxSteps` 已派生**（v4.0）：`maxSteps = optimalSteps + 容错余量`
+- [ ] **容错余量符合关卡类型**（v4.0）：教学 +8~10 / 普通 +4~6 / 魔鬼 +1~2
 - [ ] 无"一开始就有物件在目标点上"的低质量初始状态
 - [ ] 魔鬼关卡：人工验证"看似能过"（见 `docs/02-flowcharts.md` 第 7 节自检流程）
 - [ ] 通过引擎单测（无非法状态泄漏）
@@ -559,10 +658,10 @@ export function move(state, config, dir) {
 | `BootScene` | 加载公共资源、初始化 | 显示"云朵"加载动画 |
 | `MenuScene` | 主菜单 | 主角待机动画、入口按钮 |
 | `LevelSelectScene` | 选关地图 | 按章节分区，显示星级 |
-| `GameScene` | 核心游戏 | 棋盘渲染 + 输入 + 动画 |
-| `ResultScene` | 结算 | 步数、对比、分享/挑战入口 |
-| `ChallengeScene` | 挑战赛 | 挑战结果对比 |
-| `RankScene` | 排行榜 | 好友最少步数榜 |
+| `GameScene` | 核心游戏 | 棋盘渲染 + 剩余步数 HUD + 输入 + 动画 |
+| `ResultScene` | 结算（胜/败共用） | 胜利：步数与分享入口；**失败：加步复活入口**（v4.0） |
+| `DailyScene` | 每日赛 | 今日关卡、一次机会判定、结果与海报（v4.0） |
+| `RankScene` | 排行榜 | 好友数据（v1.1） |
 
 ### 6.2 渲染优化
 
@@ -695,7 +794,7 @@ export class AdAdapterImpl implements AdAdapter {
 | `onError` | **降级为"分享求助"**，不能卡死流程 |
 | `onClose` | **必须检查 `isEnded`**，`false` 时不发奖励 |
 
-### 7.4 开放数据域（好友排行榜）
+### 7.4 开放数据域（好友排行榜 · v1.1）
 
 ```typescript
 // 主域：设置要展示的数据
@@ -719,40 +818,38 @@ const sharedCanvas = openDataContext.canvas; // 主域绘制到自己的 canvas 
 
 ---
 
-## 八、后端设计（挑战赛）
+## 八、后端设计（v4.0：小镇每日赛）
 
 ### 8.1 为什么用微信云开发
 
 | 方案 | 优点 | 缺点 | 结论 |
 |:---|:---|:---|:---|
-| **微信云开发** | 免运维、免备案复杂度、免费额度够用 | 只能跑在微信生态 | ✅ **推荐** |
+| **微信云开发** | 免运维、免费额度够用、天然拿到 openid | 只能跑在微信生态 | ✅ **推荐** |
 | 自建服务器 | 自由 | 需 ICP 备案 + 运维 | ❌ 前期不必要 |
-| 纯本地 | 零后端 | 无法做异步 PK | ❌ 社交功能做不了 |
+| 纯本地 | 零后端 | 每日赛（全服同题、防作弊）做不了 | ❌ 核心玩法做不了 |
 
 ### 8.2 数据表设计
 
 ```typescript
-/** 挑战记录 */
-interface Challenge {
-  _id: string;              // 挑战 ID（云数据库自动生成）
+/** 每日赛关卡（预生成管线写入，每天一条） */
+interface DailyChallenge {
+  _id: string;
+  date: string;             // 'YYYY-MM-DD'（唯一索引）
   levelId: number;
-  creatorOpenId: string;    // 发起者
-  creatorSteps: number;     // 发起者步数（**不返回给挑战者**）
-  creatorNickname: string;
-  creatorAvatar: string;
+  config: LevelConfig;      // 完整关卡配置（含 meta.maxSteps）
   createdAt: number;
-  expiresAt: number;        // 24h 过期
-  status: 'open' | 'finished' | 'expired';
 }
 
-/** 挑战成绩 */
-interface ChallengeResult {
+/** 每日赛成绩 */
+interface DailyResult {
   _id: string;
-  challengeId: string;
+  date: string;             // 与 DailyChallenge 对应
   openId: string;
-  steps: number;
-  duration: number;         // 用时（秒）
+  steps: number;            // 消耗步数（越少越好）
+  duration: number;         // 用时（秒，步数并列时比较用）
+  usedRevive: boolean;      // 是否用过加步复活（每日 1 次）
   submittedAt: number;
+  // 唯一约束：(date, openId)
 }
 
 /** 求助记录（用于防骚扰计数） */
@@ -764,33 +861,58 @@ interface HelpRequest {
   createdAt: number;
   helped: boolean;
 }
+
+/** v1.1 扩展：1v1 挑战（保留 v3.0 结构） */
+interface Challenge {
+  _id: string;
+  levelId: number;
+  creatorOpenId: string;
+  creatorSteps: number;     // **不返回给挑战者**
+  createdAt: number;
+  expiresAt: number;        // 24h 过期
+  status: 'open' | 'finished' | 'expired';
+}
 ```
 
-### 8.3 云函数设计
+### 8.3 云函数设计（每日赛）
 
 | 云函数 | 职责 | 关键逻辑 |
 |:---|:---|:---|
-| `createChallenge` | 创建挑战 | 校验 levelId 合法，写入 `Challenge` |
-| `joinChallenge` | 加入挑战 | **返回关卡配置，不返回 creatorSteps** |
-| `submitResult` | 提交成绩 | 写入 `ChallengeResult`，返回对比结果 |
+| `getDailyChallenge` | 获取今日赛信息 | 按 `date` 查关卡；查我的 `DailyResult` 判定状态（未挑战/已挑战）；**不返回他人成绩** |
+| `submitDailyResult` | 提交成绩 | 校验链（见下）；写入 `DailyResult`；返回击败百分比 |
 | `sendHelp` | 发起求助 | **校验每日 3 次 + 好友 24h 冷却** |
-| `getRank` | 拉取排行 | 从开放数据域 / 云数据库读 |
+| `dailySettlement`（定时触发） | 每日结算 | 00:00 激活当天预生成关卡、归档昨日分布 |
 
-**`submitResult` 的返回（关键）**：
+**`submitDailyResult` 校验链（关键）**：
 
 ```typescript
-// 挑战尚未结束（对方还没提交）→ 不透露成绩
-{ status: 'waiting' }
+// ① 日期必须是今天（防伪造历史成绩）
+if (date !== today()) return { error: 'INVALID_DATE' };
 
-// 双方都已提交 → 揭晓
+// ② 步数必须在合法区间（服务端用关卡配置重算，不信任客户端）
+const cfg = await getChallengeByDate(date);
+const { optimalSteps, maxSteps } = cfg.meta;
+const budget = maxSteps + (usedRevive ? 3 : 0);   // 复活 +3
+if (steps < optimalSteps || steps > budget) {
+  return { error: 'INVALID_STEPS' };
+}
+
+// ③ 每日一次机会（(date, openId) 唯一约束）
+//    已存在记录 → 直接拒绝（产品口径：一次机会）
+if (await hasResult(date, openId)) return { error: 'ALREADY_ATTEMPTED' };
+
+// ④ 复活次数校验（每日 1 次，服务端计数）
+```
+
+**`submitDailyResult` 的返回**：
+
+```typescript
 {
-  status: 'finished',
-  mySteps: 19,
-  opponentSteps: 23,
-  diff: 4,
-  iWin: true,
-  // 仅当差距 ≤2 时才返回这个标记，用于触发"再挑战"
-  nearMiss: false
+  status: 'ok',
+  mySteps: 5,
+  beatPercent: 87,     // "击败 87% 的镇民"
+  total: 1024,         // 今日参赛人数（可选展示）
+  // ⚠️ 不返回任何个人排名、不返回他人步数——只给百分比
 }
 ```
 
@@ -798,17 +920,45 @@ interface HelpRequest {
 
 | 风险 | 措施 |
 |:---|:---|
-| 客户端伪造步数 | 服务端用关卡配置**重算最优步数**，若提交步数 < 最优步数 → 判定异常 |
-| 重复提交刷分 | 每个 `(challengeId, openId)` 只保留最优一条 |
+| 客户端伪造步数 | 服务端用关卡配置**重算最优步数**，`steps < optimalSteps` 或 `> 预算` → 拒绝 |
+| 重复提交刷分 | `(date, openId)` 唯一约束 + 一次机会判定；服务端口径，不信任客户端 |
+| 复活次数刷取 | `usedRevive` 服务端计数（每日 1 次） |
 | 刷求助次数 | 服务端计数，不信任客户端 |
 
+### 8.5 每日赛关卡预生成管线（v4.0 新增）
+
 ```typescript
-// submitResult 内的基础校验
-const optimal = LEVEL_CACHE[levelId].meta.optimalSteps;
-if (steps < optimal) {
-  return { error: 'INVALID_STEPS' }; // 不可能的步数
+// tools/dailyGenerator.ts 伪代码
+async function generateDailyChallenges(days: number) {
+  for (let d = 0; d < days; d++) {
+    const date = formatDate(addDays(today(), d));
+    if (await existsChallenge(date)) continue;   // ⚠️ 幂等：不覆盖已生成
+
+    let cfg: LevelConfig;
+    do {
+      cfg = reverseGenerate({ gridSize: [6, 6], boxes: 2 });
+    } while (!validateDailyLevel(cfg));          // 校验不通过则重生成
+
+    await insertChallenge({ date, levelId: cfg.id, config: cfg });
+  }
+}
+
+/** 每日赛关卡硬约束（与主线不同：宁易勿难） */
+function validateDailyLevel(cfg: LevelConfig): boolean {
+  const optimal = computeOptimalSteps(cfg);
+  return (
+    optimal >= 6 && optimal <= 15 &&        // 日常难度区间
+    !hasBoxOnTargetInitially(cfg) &&         // 初始质量
+    isEnclosed(cfg)                          // 地图封闭
+  );
 }
 ```
+
+**运行要求**：
+
+- **幂等**：重复执行不覆盖已存在的日期（防误删重跑）
+- **提前量**：始终保持 ≥30 天预生成余量；断供时客户端降级"昨日关卡重玩"
+- **人工抽检**：每周抽检 1-2 关，重点看"直觉解法是否是陷阱"（每日赛不宜过度魔鬼化）
 
 ---
 
@@ -852,8 +1002,38 @@ describe('SokobanEngine', () => {
     // ...
   });
 
-  it('撤销能恢复到上一步状态', () => {
-    // ...
+  it('撤销恢复棋盘，但步数不返还', () => {
+    // ⚠️ v4.0 核心语义：steps 不回退
+    const cfg = parseLevel(pushLevel);
+    let s = createState(cfg);
+    s = move(s, cfg, 'right').state;
+    s = move(s, cfg, 'up').state;
+    const stepsBeforeUndo = s.steps;
+    const r = undo(s, cfg);
+    expect(r.state.steps).toBe(stepsBeforeUndo);   // 步数锁死
+    expect(r.state.playerPos).toEqual(/* 上一步位置 */);
+  });
+
+  it('步数耗尽时进入失败态，且此后 move 被拒绝', () => {
+    // ⚠️ v4.0 限步用例
+    const cfg = parseLevel(tightBudgetLevel);      // maxSteps = 3
+    let s = createState(cfg);
+    s = move(s, cfg, 'right').state;   // 1 步
+    s = move(s, cfg, 'left').state;    // 2 步（来回走）
+    s = move(s, cfg, 'right').state;   // 3 步 → 预算用尽
+    expect(s.failed).toBe(true);
+    expect(move(s, cfg, 'left').rejected).toBe(true);
+  });
+
+  it('最后一步完成时判定为胜利而非失败', () => {
+    // ⚠️ v4.0 边界：结算判定顺序敏感（胜利优先于失败）
+  });
+
+  it('revive() 解除失败态并增加预算', () => {
+    // ⚠️ v4.0：复活广告
+    const s1 = revive(s0AtFailed, 3);
+    expect(s1.failed).toBe(false);
+    expect(s1.stepBudget).toBe(s0AtFailed.stepBudget + 3);
   });
 
   it('机关结算顺序：传送带优先于滑梯', () => {
@@ -867,11 +1047,14 @@ describe('SokobanEngine', () => {
 | 优先级 | 测试项 | 原因 |
 |:---|:---|:---|
 | P0 | `move()` 的不可变性 | 状态泄漏会导致撤销/回放全部崩坏 |
+| P0 | **步数锁死语义**（撤销不回步） | v4.0 核心规则，写错会毁掉整个玩法 |
+| P0 | **结算判定顺序**（胜利 → 失败 → 死局） | 最后一步完成误判为失败 = 灾难 |
 | P0 | 机关结算顺序 | 组合场景最容易出 bug |
 | P0 | 机关连锁的递归上限 | 防止死循环卡死游戏 |
 | P1 | 撤销/重置 | 玩家高频使用 |
-| P1 | 关卡求解器 | 关卡质量把关 |
-| P2 | 挑战赛成绩对比 | 社交核心 |
+| P1 | 关卡求解器 + maxSteps 派生 | 关卡质量与难度把关 |
+| P1 | **每日赛成绩校验**（服务端） | 防作弊是竞技公平的生命线 |
+| P2 | 1v1 挑战（v1.1） | 扩展功能 |
 
 ---
 
@@ -888,31 +1071,38 @@ game_box/
 │   └── index.html
 ├── src/
 │   ├── engine/                    # 引擎层（纯函数，零 Phaser 依赖）
-│   │   ├── types.ts
+│   │   ├── types.ts               # 含 maxSteps / stepBudget / failed（v4.0）
 │   │   ├── createState.ts
-│   │   ├── move.ts
+│   │   ├── move.ts                # 含限步判定与失败结算（v4.0）
+│   │   ├── undo.ts                # 回退棋盘 · 步数锁死（v4.0）
+│   │   ├── revive.ts              # 加步复活（v4.0）
 │   │   ├── mechanisms/            # 机关实现
 │   │   │   ├── conveyor.ts
 │   │   │   ├── slope.ts
 │   │   │   └── spring.ts
 │   │   ├── hint.ts
 │   │   ├── deadlock.ts
-│   │   ├── solver.ts              # 最优步数计算
+│   │   ├── solver.ts              # 最优步数计算 + maxSteps 派生
 │   │   └── index.ts
 │   ├── levels/                    # 关卡数据
 │   │   ├── chapter1.json
 │   │   ├── chapter2.json
 │   │   └── chapter3.json
-│   ├── scenes/                    # Phaser 场景
-│   ├── ui/                        # UI 组件
-│   ├── adapters/                  # 平台适配层
+│   ├── scenes/                    # Phaser 场景（含 DailyScene 每日赛）
+│   ├── ui/                        # UI 组件（剩余步数 HUD / 结果海报）
+│   ├── adapters/                  # 平台适配层（含 AdAdapter 复活广告）
 │   ├── assets/                    # 美术/音频资源
 │   └── main.ts
+├── cloudfunctions/                # 微信云开发（v4.0）
+│   ├── getDailyChallenge/
+│   ├── submitDailyResult/
+│   └── sendHelp/
 ├── tests/                         # 单测
 │   └── engine/
 ├── tools/                         # 关卡生成/校验脚本
 │   ├── generator.ts
-│   └── validator.ts
+│   ├── validator.ts
+│   └── dailyGenerator.ts          # 每日赛 30 天预生成（幂等）
 ├── package.json
 ├── tsconfig.json
 └── vite.config.ts
@@ -924,9 +1114,12 @@ game_box/
 
 | 风险点 | 说明 | 应对 |
 |:---|:---|:---|
+| **步数锁死的规则感知** | 玩家可能不理解"撤销为什么不让步数变回来" | UI 明示（撤销按钮旁标注 + "步数不返还"轻提示 + 首次触发时强提示） |
+| **结算判定顺序误写** | 最后一步胜利被误判为失败 → 玩家愤怒 | 单测固化顺序：胜利 → 失败 → 死局 |
 | 机关组合爆炸 | 3 个机制两两组合就是 3 种交叉场景，都要测 | 引擎层先写组合单测，再做关卡 |
 | `detectDeadlock` 不准确 | 完整死局判定是 PSPACE 难度 | 只做有限深度搜索，**不承诺 100% 准确**，UI 上表达为"可能卡住了" |
 | `getHint` 性能 | BFS 全状态空间可能很慢 | **限制搜索深度** + 预计算最优路径缓存 |
+| **每日赛关卡质量** | 每天一关且不可重试，差关卡直接伤害当日全部用户 | 预生成管线强制校验 + 人工抽检；客户端断供降级"昨日重玩" |
 | 包体超限 | 美术资源容易超 | 每加一个资源就测包体，别到最后才发现 |
 | 微信 API 变更 | 适配层可能有 breaking change | 适配层隔离，最多改一个文件 |
 
