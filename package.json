@@ -1,0 +1,24 @@
+{
+  "name": "yunduo-town-push",
+  "version": "0.1.0",
+  "private": true,
+  "description": "《云朵小镇·推推奇遇》—— 治愈系限步推箱子微信小游戏（Phaser 3 + TypeScript）",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0",
+    "vitest": "^1.6.0"
+  }
+}
